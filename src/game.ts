@@ -11,6 +11,8 @@ import { Entity, Component } from './world'
 
 import Content from './content'
 
+import { MainMenu } from './components/main_menu'
+
 export default class Game {
 
 
@@ -23,7 +25,11 @@ export default class Game {
 
   buffer!: Target
 
+  world!: World
+
   init() {
+
+    this.world = new World()
 
     this.buffer = Target.create(Game.width, Game.height)
 
@@ -31,10 +37,20 @@ export default class Game {
 
 
     Content.load().then(() => {
+      this.load_room()
     })
   }
 
+
+  load_room() {
+
+    let offset = Vec2.make(0, 0)
+
+    MainMenu.make(this.world, offset)
+  }
+
   update() {
+    this.world.update()
   }
 
   render() {
@@ -43,7 +59,7 @@ export default class Game {
 
       this.buffer.clear(Color.hex(0x150e22))
 
-      //this.world.render(batch)
+      this.world.render(batch)
 
 
       batch.render(this.buffer)

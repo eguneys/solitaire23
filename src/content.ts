@@ -2,7 +2,7 @@ import Game from './game'
 import { Rect, Vec2, Image as BImage } from 'blah'
 import { Texture, Subtexture } from 'blah'
 
-import { Sprite } from './assets/sprite'
+import { Frame, Animation, Sprite } from './assets/sprite'
 
 import content_page0 from '../content/out_0.png'
 import content_page0_json from '../content/out_0.json'
@@ -26,6 +26,42 @@ class Content {
     let texture = Texture.from_image(image)
 
     this.sprites = []
+
+
+    content_page0_json.sprites.forEach(_sprite => {
+      let { name, packs, tags } = _sprite
+
+
+      let origin = Vec2.zero
+
+      let animations: Array<Animation> = []
+
+      tags.forEach(tag => {
+        let duration = 100 / 1000
+        let frames = []
+        for (let i = tag.from; i <= tag.to; i++) {
+
+          let _ = packs[i]
+          let framerect = Rect.make(_.frame.x, _.frame.y, _.frame.w, _.frame.h)
+          let subrect = Rect.make(_.packed.x, _.packed.y, _.packed.w, _.packed.h)
+
+          let frame = new Frame(Subtexture.make(texture, subrect, framerect), duration)
+          frames.push(frame)
+        }
+
+          let anim = new Animation(tag.name, frames)
+
+          animations.push(anim)
+      })
+
+
+
+      let sprite = new Sprite(name, origin, animations)
+
+      this.sprites.push(sprite)
+
+
+    })
   }
 
 

@@ -14,6 +14,7 @@ export abstract class Component {
   }
 
   render(batch: Batch) {}
+  update() {}
 }
 
 
@@ -85,6 +86,16 @@ export class World {
     return component
   }
 
+  update() {
+
+    for (let components of this.components.values()) {
+      components.forEach(component => {
+        if (component.active && component.entity.active) {
+          component.update
+        }
+      })
+    }
+  }
 
 
   render(batch: Batch) {
