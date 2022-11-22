@@ -1,23 +1,32 @@
-import './style.css'
-import typescriptLogo from './typescript.svg'
-import { setupCounter } from './counter'
+import { App } from 'blah'
+import Game from './game'
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`
+const app = (element: HTMLElement) => {
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+  let game = new Game()
+
+  App.run({
+    name: 'solitaire23',
+    width: 1920,
+    height: 1080,
+    on_startup() {
+      game.init()
+    },
+    on_update() {
+      game.update()
+    },
+    on_render() {
+      game.render()
+    }
+  })
+
+  if (App.canvas) {
+    element.appendChild(App.canvas)
+  }
+}
+
+
+app(document.getElementById('app')!)
+
+
+export default app
