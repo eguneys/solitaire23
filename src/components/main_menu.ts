@@ -4,6 +4,7 @@ import { Vec2, Mat3x2 } from 'blah'
 import { Background } from './background'
 import { Animator } from './animator'
 import Game from '../game'
+import { Hoverable } from './hoverable'
 
 class Title extends Component {
   static make = (world: World, position: Vec2) => {
@@ -34,6 +35,7 @@ class Card extends Component {
     let under_anim = underline.add(Animator.make('card_underline'))
     under_anim.play('idle')
 
+    let hover = en.add(new Hoverable())
 
 
     return en

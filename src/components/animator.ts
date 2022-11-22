@@ -40,7 +40,7 @@ export class Animator extends Component {
   }
 
 
-  play(animation: string, loop: boolean, restart: boolean = false) {
+  play(animation: string, loop: boolean = false, restart: boolean = false) {
     this._loop = loop
     for (let i = 0; i < this._sprite.animations.length; i++) {
       if (this._sprite.animations[i].name === animation) {

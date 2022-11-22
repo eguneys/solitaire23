@@ -1,5 +1,6 @@
 import { App } from 'blah'
 import Game from './game'
+import Input from './input'
 
 const app = (element: HTMLElement) => {
 
@@ -13,6 +14,7 @@ const app = (element: HTMLElement) => {
       game.init()
     },
     on_update() {
+      Input.update()
       game.update()
     },
     on_render() {
@@ -23,6 +25,8 @@ const app = (element: HTMLElement) => {
   if (App.canvas) {
     element.appendChild(App.canvas)
   }
+
+  Input.listen(element)
 }
 
 
