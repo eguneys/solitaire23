@@ -32,8 +32,8 @@ export default async function pack() {
     sprites
   }
 
-  fs.writeFileSync('./content/out_0.json', JSON.stringify(res))
   fs.writeFileSync('./content/out_0.png', packer.pages[0].png_buffer)
+  fs.writeFileSync('./content/out_0.json', JSON.stringify(res))
 
   console.log('content written.')
 

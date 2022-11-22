@@ -23,6 +23,9 @@ export default class Game {
   static width = 640
   static height = 360
 
+
+  static card_width = 140
+
   buffer!: Target
 
   world!: World

@@ -91,7 +91,7 @@ export class World {
     for (let components of this.components.values()) {
       components.forEach(component => {
         if (component.active && component.entity.active) {
-          component.update
+          component.update()
         }
       })
     }

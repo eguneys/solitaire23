@@ -21,6 +21,8 @@ export class Animator extends Component {
   _frame_index: number
   _frame_counter: number
 
+  _loop: boolean = true
+
 
   scale = Vec2.one
   offset = Vec2.zero
@@ -38,7 +40,8 @@ export class Animator extends Component {
   }
 
 
-  play(animation: string, restart: boolean = false) {
+  play(animation: string, loop: boolean, restart: boolean = false) {
+    this._loop = loop
     for (let i = 0; i < this._sprite.animations.length; i++) {
       if (this._sprite.animations[i].name === animation) {
         if (this._animation_index !== i || restart) {
@@ -65,7 +68,11 @@ export class Animator extends Component {
         this._frame_index++;
 
           if (this._frame_index >= anim.frames.length) {
-            this._frame_index = 0
+            if (this._loop) {
+              this._frame_index = 0
+            } else {
+              this._frame_index = anim.frames.length - 1
+            }
           }
       }
     }
