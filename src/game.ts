@@ -12,6 +12,7 @@ import { Entity, Component } from './world'
 import Content from './content'
 
 import { MainMenu } from './components/main_menu'
+import { Input as InputComponent } from './components/input'
 
 export default class Game {
 
@@ -25,6 +26,7 @@ export default class Game {
 
 
   static card_width = 140
+  static card_height = 200
 
   buffer!: Target
 
@@ -50,6 +52,8 @@ export default class Game {
     let offset = Vec2.make(0, 0)
 
     MainMenu.make(this.world, offset)
+
+    InputComponent.make(this.world)
   }
 
   update() {

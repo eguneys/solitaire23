@@ -1,10 +1,11 @@
 import { World, Component } from '../world'
-import { Vec2, Mat3x2 } from 'blah'
+import { Rect, Vec2, Mat3x2 } from 'blah'
 
 import { Background } from './background'
 import { Animator } from './animator'
 import Game from '../game'
 import { Hoverable } from './hoverable'
+import { Collider } from './collider'
 
 class Title extends Component {
   static make = (world: World, position: Vec2) => {
@@ -35,7 +36,16 @@ class Card extends Component {
     let under_anim = underline.add(Animator.make('card_underline'))
     under_anim.play('idle')
 
+    let hitbox = en.add(Collider.make_rect(Rect.make(0, 0, Game.card_width, Game.card_height)))
+
     let hover = en.add(new Hoverable())
+    hover.collider = hitbox
+    hover.on_hover_begin = () => {
+      under_anim.play('open')
+    }
+    hover.on_hover_end = () => {
+      under_anim.play('open', { reverse: true })
+    }
 
 
     return en

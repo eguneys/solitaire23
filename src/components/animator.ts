@@ -3,6 +3,13 @@ import { Time, Batch, Vec2, Mat3x2, Color } from 'blah'
 import { Sprite } from '../assets/sprite'
 import Content from '../content'
 
+export type PlayOptions = {
+  reverse?: boolean,
+  loop?: boolean,
+  restart?: boolean
+}
+
+export const default_options = { reverse: false, loop: false, restart: false }
 
 export class Animator extends Component {
 
@@ -21,8 +28,19 @@ export class Animator extends Component {
   _frame_index: number
   _frame_counter: number
 
-  _loop: boolean = true
+  _options: PlayOptions = default_options
 
+  get loop() {
+    return this._options.loop
+  }
+
+  get reverse() {
+    return this._options.reverse
+  }
+
+  get restart() {
+    return this._options.restart
+  }
 
   scale = Vec2.one
   offset = Vec2.zero
@@ -40,11 +58,11 @@ export class Animator extends Component {
   }
 
 
-  play(animation: string, loop: boolean = false, restart: boolean = false) {
-    this._loop = loop
+  play(animation: string, _opts: PlayOptions = default_options) {
+    this._options = _opts
     for (let i = 0; i < this._sprite.animations.length; i++) {
       if (this._sprite.animations[i].name === animation) {
-        if (this._animation_index !== i || restart) {
+        if (this._animation_index !== i || this.restart) {
           this._animation_index = i
           this._frame_index = 0
           this._frame_counter = 0
@@ -65,15 +83,27 @@ export class Animator extends Component {
       while (this._frame_counter >= frame.duration) {
         this._frame_counter -= frame.duration
 
-        this._frame_index++;
+        if (this.reverse) {
+          this._frame_index--;
+
+          if (this._frame_index < 0) {
+            if (this.loop) {
+              this._frame_index = anim.frames.length - 1
+            } else {
+              this._frame_index = 0
+            }
+          }
+        } else {
+          this._frame_index++;
 
           if (this._frame_index >= anim.frames.length) {
-            if (this._loop) {
+            if (this.loop) {
               this._frame_index = 0
             } else {
               this._frame_index = anim.frames.length - 1
             }
           }
+        }
       }
     }
   }

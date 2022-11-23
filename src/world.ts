@@ -13,6 +13,10 @@ export abstract class Component {
     return this.entity.get(ctor)
   }
 
+  get world() {
+    return this.entity.world
+  }
+
   render(batch: Batch) {}
   update() {}
 }
