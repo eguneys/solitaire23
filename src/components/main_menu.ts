@@ -87,11 +87,40 @@ class Cards extends Component {
 
 }
 
-class TextButtons extends Component {
+class SideIcon extends Component {
+
+  static make = (world: World, position: Vec2, text: string) => {
+    let en = world.add_entity(position)
+
+
+    let shadow = en.add(Text.make(text, 32, Color.black))
+
+    let hitbox = en.add(Collider.make_rect(Rect.make(0, 0, shadow.width, shadow.height)))
+
+    let hover = en.add(new Hoverable())
+    hover.collider = hitbox
+    hover.on_hover_begin = () => {
+      shadow.color = Color.red
+    }
+    hover.on_hover_end = () => {
+      shadow.color = Color.black
+    }
+
+
+
+    return en
+  }
+}
+
+class SideIcons extends Component {
   static make = (world: World, position: Vec2) => {
     let en = world.add_entity(position)
 
-    en.add(new TextButtons())
+    let v_off = 40
+    let howtoplay = SideIcon.make(world, position, 'howtoplay'),
+    stats = SideIcon.make(world, position.add(Vec2.make(0, v_off)), 'stats'),
+    settings = SideIcon.make(world, position.add(Vec2.make(0, v_off * 2)), 'settings'),
+    about = SideIcon.make(world, position.add(Vec2.make(0, v_off * 3)), 'about')
 
     return en
   }
@@ -110,7 +139,8 @@ export class MainMenu extends Component {
     Title.make(world, position)
 
     Cards.make(world, position.add(Vec2.make(Game.width * 0.05, Game.height * 0.2)))
-    TextButtons.make(world, position)
+
+    SideIcons.make(world, Vec2.make(480, 100))
 
 
     return en

@@ -5,12 +5,13 @@ import Content from '../content'
 
 export class Text extends Component {
 
-  static make = (text: string, size: number = 64, color: Color = Color.white, rotation: number) => {
+  static make = (text: string, size: number = 64, color: Color = Color.white, rotation: number = 0) => {
     let res = new Text()
     res.text = text
     res.size = size
     res.color = color
     res.rotation = rotation
+    res.offset = Vec2.zero
     return res
   }
 
@@ -20,8 +21,16 @@ export class Text extends Component {
   color!: Color
   offset!: Vec2
 
+  get height() {
+    return Content.sp_font.height_of(this.text) / (64 + 16) * this.size
+  }
+
+  get width() {
+    return Content.sp_font.width_of(this.text) / (64 + 16) * this.size
+  }
+
   get end_x() {
-    return this.offset.x + Content.sp_font.width_of(this.text) / (64 + 16) * this.size
+    return this.offset.x + this.width
   }
 
   render(batch: Batch) {
