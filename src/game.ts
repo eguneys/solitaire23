@@ -91,7 +91,9 @@ export default class Game {
                                                  ))
 
         batch.tex(this.buffer.texture(0), Vec2.zero, Color.white)
+
         batch.pop_matrix()
+
         batch.render(App.backbuffer)
         batch.clear()
     }

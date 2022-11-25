@@ -1,8 +1,9 @@
 import { World, Component } from '../world'
-import { Rect, Vec2, Mat3x2 } from 'blah'
+import { Color, Rect, Vec2, Mat3x2 } from 'blah'
 
 import { Background } from './background'
 import { Animator } from './animator'
+import { Text } from './text'
 import Game from '../game'
 import { Hoverable } from './hoverable'
 import { Collider } from './collider'
@@ -16,6 +17,13 @@ class Title extends Component {
     let anim = en.add(Animator.make('title_bg'))
     anim.play('idle')
 
+    let s = 38
+    let y = 12
+    let title = en.add(Text.make('lisotaire', s))
+    title.offset = Vec2.make(8, y)
+    let com = en.add(Text.make('.com', s, Color.hex(0xcccccc)))
+    com.offset = Vec2.make(title.end_x, y)
+
     en.add(new Background())
 
     return en
@@ -25,7 +33,7 @@ class Title extends Component {
 
 class Card extends Component {
 
-  static make = (world: World, position: Vec2) => {
+  static make = (world: World, position: Vec2, text: string) => {
     let en = world.add_entity(position)
 
     let anim = en.add(Animator.make('card_bg'))
@@ -36,16 +44,26 @@ class Card extends Component {
     let under_anim = underline.add(Animator.make('card_underline'))
     under_anim.play('idle')
 
+
+    let shadow = en.add(Text.make(text, 50, Color.black, Math.PI / 2))
+    shadow.offset = Vec2.make(40, -56).add(Vec2.make(2, 2))
+    let title = en.add(Text.make(text, 50, Color.white, Math.PI / 2))
+    title.offset = Vec2.make(40, -56)
+
     let hitbox = en.add(Collider.make_rect(Rect.make(0, 0, Game.card_width, Game.card_height)))
 
     let hover = en.add(new Hoverable())
     hover.collider = hitbox
     hover.on_hover_begin = () => {
       under_anim.play('open')
+      title.color = Color.hex(0xcc3344)
     }
     hover.on_hover_end = () => {
       under_anim.play('open', { reverse: true })
+      title.color = Color.white
     }
+
+
 
 
     return en
@@ -57,9 +75,9 @@ class Cards extends Component {
     let en = world.add_entity(position)
 
 
-    let solitaire = Card.make(world, position),
-      freecell = Card.make(world, position.add(Vec2.make(Game.card_width, 0))),
-      spider = Card.make(world, position.add(Vec2.make(Game.card_width * 2, 0)))
+    let solitaire = Card.make(world, position, 'solitaire'),
+      freecell = Card.make(world, position.add(Vec2.make(Game.card_width, 0)), 'freecell'),
+      spider = Card.make(world, position.add(Vec2.make(Game.card_width * 2, 0)), 'spider')
 
 
     en.add(new Cards())

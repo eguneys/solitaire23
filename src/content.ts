@@ -1,11 +1,16 @@
 import Game from './game'
 import { Rect, Vec2, Image as BImage } from 'blah'
 import { Texture, Subtexture } from 'blah'
+import { SpriteFont} from 'blah'
 
 import { Frame, Animation, Sprite } from './assets/sprite'
 
 import content_page0 from '../content/out_0.png'
 import content_page0_json from '../content/out_0.json'
+
+
+import content_font0 from '../content/fonts/out_0.png'
+import content_font0_json from '../content/fonts/out_0.json'
 
 
 function load_image(path: string): Promise<HTMLImageElement> {
@@ -22,7 +27,12 @@ class Content {
 
   load = async () => {
 
-    let image = await load_image(content_page0)
+    let [image,
+     font_image] = await Promise.all([
+       load_image(content_page0),
+       load_image(content_font0),
+     ])
+
     let texture = Texture.from_image(image)
 
     this.sprites = []
@@ -62,9 +72,14 @@ class Content {
 
 
     })
+
+
+
+    this.sp_font = SpriteFont.make(content_font0_json, font_image)
   }
 
 
+  sp_font!: SpriteFont
   sprites!: Array<Sprite>
 
   find_sprite(name: string) {
