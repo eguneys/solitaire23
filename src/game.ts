@@ -4,7 +4,7 @@ import { Rect, Vec2, Mat3x2 } from 'blah'
 import { Time, App, batch, Batch, Target } from 'blah'
 
 import Content from './content'
-import Input, { EventPosition, DragEvent } from './input'
+import Input, { Hooks, EventPosition, DragEvent } from './input'
 import { howtos } from './howtos'
 import { Transition, transition } from './transition'
 
@@ -50,7 +50,11 @@ abstract class Play {
     return this
   }
 
+  unbindable_input(hooks: Hooks) {
+    this._disposes.push(Input.register(hooks))
+  }
 
+  _disposes!: Array<() => void>
   objects!: Array<Play>
 
   _add_object(child: Play) {
@@ -70,6 +74,7 @@ abstract class Play {
 
   init(): this { 
 
+    this._disposes = []
     this.objects = []
 
     this._init()
@@ -89,14 +94,23 @@ abstract class Play {
     this.objects.forEach(_ => _.draw(batch))
   }
 
+  dispose() {
+    this.objects.forEach(_ => _.dispose())
+    this._dispose()
+
+    this._disposes.forEach(_ => _())
+
+  }
+
   _init() {}
   _update() {}
   _draw(batch: Batch) {
     batch.push_matrix(Mat3x2.create_translation(this.position))
-    this.g_position = Vec2.transform(this.position, batch.m_matrix)
+    this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
     this._draw_children(batch)
     batch.pop_matrix()
   }
+  _dispose() {}
 }
 
 type RectData = {
@@ -155,9 +169,7 @@ class MainTitle extends Play {
   }
 }
 
-type MainSideBarItemData = {
-  icon: string
-}
+
 
 type ClickableData = {
   rect: Rect,
@@ -183,7 +195,7 @@ class Clickable extends Play {
   _init() {
     let _hovering = false
     let self = this
-    Input.register({
+    this.unbindable_input({
       on_hover(_e: EventPosition) {
         let e = _e.mul(Game.v_screen)
         let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
@@ -214,6 +226,12 @@ class Clickable extends Play {
     })
   }
 
+}
+export type PlayType<T extends Play> = { new(...args: any[]): T}
+
+type MainSideBarItemData = {
+  icon: string,
+  next: PlayType<Play>
 }
 
 class MainSideBarItem extends Play {
@@ -255,7 +273,7 @@ class MainSideBarItem extends Play {
         text.color = Color.white
       },
       on_click() {
-        console.log(self.data.icon)
+        scene_transition.next(self.data.next)
       },
       rect: Rect.make(0, 0, this.width - 16, this.height - 16)
     })
@@ -275,13 +293,13 @@ class MainSideBar extends Play {
     let _
     let tabs = [ ]
 
-    _ = this._make(MainSideBarItem, Vec2.make(0, 0), { icon: 'how to play' })
+    _ = this._make(MainSideBarItem, Vec2.make(0, 0), { icon: 'how to play', next: HowtoPlay })
     tabs.push(_)
-    _ = this._make(MainSideBarItem, Vec2.make(0, _.height), { icon: 'settings' })
+    _ = this._make(MainSideBarItem, Vec2.make(0, _.height), { icon: 'settings', next: HowtoPlay })
     tabs.push(_)
-    _ = this._make(MainSideBarItem, Vec2.make(0, _.height * 2), { icon: 'statistics' })
+    _ = this._make(MainSideBarItem, Vec2.make(0, _.height * 2), { icon: 'statistics', next: Statistics })
     tabs.push(_)
-    _ = this._make(MainSideBarItem, Vec2.make(0, _.height * 3), { icon: 'about' })
+    _ = this._make(MainSideBarItem, Vec2.make(0, _.height * 3), { icon: 'about', next: HowtoPlay })
     tabs.push(_)
 
     this.make(Tabs, Vec2.make(4, 4), {
@@ -304,16 +322,185 @@ class MainMenu extends Play {
   }
 }
 
+
+class Statistics extends Play {
+  _init() {
+
+    this.make(Background, Vec2.zero, undefined)
+
+    let self = this
+    this.make(Navigation, Vec2.zero, {
+      route: 'statistics',
+      on_back() {
+        scene_transition.next(MainMenu)
+      }
+    })
+
+
+    let w = 600
+    let tabs = [
+      this._make(Tab, Vec2.make(2, 2), {
+        text: 'last activity',
+        w
+      }),
+      this._make(Tab, Vec2.make(2 + (w + 4), 2), {
+        text: 'games played',
+        w
+      })
+    ]
+
+
+    this.make(Tabs, Vec2.make(700, 8), {
+      tabs
+    })
+
+    let panels = [this._make(StatsGamesPlayed, Vec2.make(0, 0), {
+    })]
+
+    this.make(TabPanel, Vec2.make(500, 140), {
+      w: 1400,
+      h: 920,
+      panels
+    })
+
+  }
+}
+
+
+class StatsGamesPlayed extends Play {
+  _init() {
+
+    let size = 64
+    let x = 2
+    let w = 240
+    let _
+    let tabs = []
+    _ = this._make(Tab, Vec2.make(x, 2), {
+      size,
+      text: '30\nall',
+      w
+    })
+    tabs.push(_)
+    x += w
+    w = 380
+
+    _ = this._make(Tab, Vec2.make(x, 2), {
+      size,
+      text: '30\ngame over',
+      w
+    })
+    tabs.push(_)
+    x += w
+
+    _ = this._make(Tab, Vec2.make(x, 2), {
+      size,
+      text: '3000\ngame completed',
+      w
+    })
+    tabs.push(_)
+    x+= w
+
+    _ = this._make(Tab, Vec2.make(x, 2), {
+      size,
+      text: '1000\ngame incomplete',
+      w
+    })
+    tabs.push(_)
+
+
+    this.make(Tabs, Vec2.make(0, 8), {
+      tabs
+    })
+
+    let panels: Array<Play> = [
+      this._make(StatsGameList, Vec2.zero, {})
+    ]
+
+    this.make(TabPanel, Vec2.make(0, 0), {
+      w: 0,
+      h: 0,
+      panels
+    })
+
+
+  }
+}
+
+class StatsGameList extends Play {
+  _init() {
+
+    this.make(ScrollableList, Vec2.make(20, 120), {
+      w: 1340,
+      h: 660,
+      items: [],
+      item_content: MiniGameListItem
+    })
+  }
+}
+
+
+class MiniGameListItem extends Play {
+
+  _init() {
+
+    this.make(RectView, Vec2.make(0, 0), {
+      w: 1340,
+      h: 800,
+      color: Color.black
+    })
+  }
+
+}
+
+type ScrollableListData<T> = {
+  w: number,
+  h: number,
+  items: Array<T>,
+  item_content: PlayType<Play>
+}
+class ScrollableList<T> extends Play {
+
+  get data() {
+    return this._data as ScrollableListData<T>
+  }
+
+  _init() {
+
+    let content = this._make(ScrollableListLongContent, Vec2.make(0, 0), this.data)
+
+    this.make(ScrollableContent, Vec2.make(20, 120), {
+      w: this.data.w,
+      h: this.data.h,
+      content
+    })
+
+  }
+}
+
+class ScrollableListLongContent<T> extends Play {
+
+  get data() {
+    return this._data as ScrollableListData<T>
+  }
+
+
+
+  _init() {
+    this.make(this.data.item_content, Vec2.make(0, 0), {})
+  }
+}
+
 class HowtoPlay extends Play {
 
   _init() {
 
     this.make(Background, Vec2.zero, undefined)
 
+    let self = this
     this.make(Navigation, Vec2.zero, {
       route: 'how to play',
       on_back() {
-
+        scene_transition.next(MainMenu)
       }
     })
 
@@ -476,6 +663,10 @@ class Tabs extends Play {
     this.data.tabs.forEach(_ => _.draw(batch))
     batch.pop_matrix()
   }
+
+  _dispose() {
+    this.data.tabs.forEach(_ => _.dispose())
+  }
 }
 
 type NavigationData = {
@@ -495,9 +686,11 @@ class Navigation extends Play {
 
   _init() {
 
+    let w = 600,
+      h = 32 + 64
     this.make(RectView, Vec2.make(4, 4), {
-      w: 600,
-      h: 32 + 64,
+      w,
+      h,
       color: Color.hex(0x202431)
     })
 
@@ -509,6 +702,23 @@ class Navigation extends Play {
     this.make(Text, Vec2.make(130, 16), {
       text: this.route
     })
+
+
+    let self = this
+
+    this.make(Clickable, Vec2.make(0, 0), {
+      rect: Rect.make(0, 0, w, h),
+      on_hover() {
+      },
+      on_hover_end() {
+      },
+      on_click() {
+        self.data.on_back()
+      }
+    })
+
+
+
   }
 
 
@@ -531,6 +741,10 @@ class Text extends Play {
 
   get origin() {
     return this.data.center ? Vec2.make(this.width / 2, 0) : Vec2.zero
+  }
+
+  get justify() {
+    return this.data.center ? Vec2.make(0, 0) : Vec2.zero
   }
 
   get color() {
@@ -562,7 +776,7 @@ class Text extends Play {
     batch.push_matrix(Mat3x2.create_transform(Vec2.zero, this.origin, Vec2.one, 0))
 
     this.g_position = Vec2.transform(this.position, batch.m_matrix)
-    batch.str_j(this.font, this.text, this.position, Vec2.zero, this.size, this.color)
+    batch.str_j(this.font, this.text, this.position, this.justify, this.size, this.color)
     batch.pop_matrix()
   }
 }
@@ -582,7 +796,7 @@ class HyperText extends Text {
   _init() {
 
     let self = this
-    Input.register({
+    this.unbindable_input({
       on_hover(_e: EventPosition) {
         let e = _e.mul(Game.v_screen)
         let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
@@ -610,9 +824,11 @@ class HyperText extends Text {
 
 
 type TabData = {
+  size?: number,
   text: string,
   w: number
 }
+
 class Tab extends Play {
 
   get data() {
@@ -635,12 +851,47 @@ class Tab extends Play {
     })
 
     this.make(Text, Vec2.make(this.data.w/2, 8), {
+      size: this.data.size,
       text: this.data.text,
       center: true
     })
   }
 
 }
+
+type TabPanelData = {
+  panels: Array<Play>,
+  w: number,
+  h: number
+}
+
+
+class TabPanel extends Play {
+
+  get data() {
+    return this._data as TabPanelData
+  }
+
+  _init() {
+
+    this.make(RectView, Vec2.zero, {
+      w: this.data.w,
+      h: this.data.h,
+      color: Color.hex(0x202431)
+    })
+  }
+
+  _draw(batch: Batch) {
+    batch.push_matrix(Mat3x2.create_translation(this.position))
+    this._draw_children(batch)
+
+    this.data.panels.forEach(_ => _.draw(batch))
+    batch.pop_matrix()
+  }
+
+
+}
+
 
 type ScrollableContentData = {
   w: number,
@@ -700,9 +951,8 @@ class ScrollableContent extends Play {
     })
 
     let self = this
-    Input.register({
+    this.unbindable_input({
       on_drag(d: DragEvent, d0?: DragEvent) {
-
         if (d.m) {
           self.scroll_off = (d.m.y - d.e.y) * 1080
         }
@@ -727,7 +977,6 @@ class ScrollableContent extends Play {
 
     this.thumb.position.y = -(this.scroll_y + this.scroll_off) / (this.content as any).height * this.height
 
-
     this.data.content.position.set_in(
       this.content_base_position.add(Vec2.make(
         40, 40 + this.scroll_y + this.scroll_off)))
@@ -740,17 +989,23 @@ class ScrollableContent extends Play {
     batch.push_matrix(Mat3x2.create_translation(this.position))
     this._draw_children(batch)
 
-    batch.push_scissor(Rect.make(this.position.x, this.position.y + 8 + 4, this.width, this.height - 16 - 4 - 4))
+    let position = Vec2.transform(Vec2.zero, batch.m_matrix)
+    batch.push_scissor(Rect.make(position.x, position.y + 12, this.width, this.height - 24))
     this.thumb.draw(batch)
     batch.pop_scissor()
 
     //batch.push_matrix(Mat3x2.create_translation(Vec2.make(40, 40 + this.scroll_y + this.scroll_off)))
-    batch.push_scissor(Rect.make(this.position.x, this.position.y, this.width, this.height))
+
+    batch.push_scissor(Rect.make(position.x, position.y, this.width, this.height))
     this.data.content.draw(batch)
     batch.pop_scissor()
     //batch.pop_matrix()
 
     batch.pop_matrix()
+  }
+
+  _dispose() {
+    this.data.content.dispose()
   }
 
 }
@@ -769,6 +1024,10 @@ class TransitionMask extends Play {
 
   _update() {
     this._t = appr(this._t, 0, Time.delta)
+  }
+
+  get done() {
+    return this._t === 0
   }
 
   _draw(batch: Batch) {
@@ -791,9 +1050,16 @@ class SceneTransition extends Play {
   target!: Target
   target2!: Target
 
-  mask!: Play
+  mask?: TransitionMask
   current!: Play
-  next?: Play
+  _next?: Play
+
+  next<T extends Play>(ctor: { new(...args: any[]): T}, position: Vec2 = Vec2.zero, data: any = {}) {
+    if (!this._next) {
+      this._next = this._make(ctor, position, data)
+      this.mask = this._make(TransitionMask, Vec2.zero, {})
+    }
+  }
 
   _init() {
 
@@ -802,22 +1068,32 @@ class SceneTransition extends Play {
     this.target = Target.create(Game.width, Game.height)
     this.mask_target = Target.create(Game.width, Game.height)
 
-    this.mask = this._make(TransitionMask, Vec2.zero, {})
-    this.current = this._make(MainMenu, Vec2.zero, {})
-
-    this.next = this._make(HowtoPlay, Vec2.zero, {})
+    //this.current = this._make(MainMenu, Vec2.zero, {})
+    this.current = this._make(Statistics, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
 
   }
 
   _update() {
-    this.mask.update()
+
+    this._next?.update()
+    this.current.update()
+
+    this.mask?.update()
+
+    if (this.mask?.done) {
+      this.current.dispose()
+      this.mask.dispose()
+      this.mask = undefined
+      this.current = this._next!
+      this._next = undefined
+    }
   }
 
   _draw(batch: Batch) {
 
-    if (!this.next) {
+    if (!this._next) {
       this.current.draw(batch)
       return
     }
@@ -826,12 +1102,12 @@ class SceneTransition extends Play {
     batch.render(this.target)
     batch.clear()
 
-    this.next.draw(batch)
+    this._next.draw(batch)
     batch.render(this.target2)
     batch.clear()
 
     this.mask_target.clear(Color.hex(0xff0000))
-    this.mask.draw(batch)
+    this.mask?.draw(batch)
     batch.render(this.mask_target)
     batch.clear()
 
@@ -843,6 +1119,7 @@ class SceneTransition extends Play {
   }
 }
 
+let scene_transition: SceneTransition
 
 export default class Game extends Play {
 
@@ -858,8 +1135,7 @@ export default class Game extends Play {
     this.objects = []
 
     Content.load().then(() => {
-      this.make(SceneTransition, Vec2.zero, {})
-      //this.make(HowtoPlay, Vec2.zero, {})
+      scene_transition = this.make(SceneTransition, Vec2.zero, {})
     })
   }
 

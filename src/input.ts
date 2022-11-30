@@ -25,6 +25,10 @@ class Input {
 
   register(hooks: Hooks) {
     this._hooks.push(hooks)
+
+    return () => {
+      this._hooks.splice(this._hooks.indexOf(hooks), 1)
+    }
   }
 
   _on_hover(e: EventPosition) {
