@@ -84,7 +84,7 @@ class Input {
 
         self._on_update = () => {
           if (_drag) {
-            if (_drag.m || (_m && _drag.e.distance(_m) > 3)) { _drag.m = _m }
+            if (_drag.m || (_m && _drag.e.distance(_m) > 16/1080)) { _drag.m = _m }
             self._on_drag(_drag, _drag0)
             _drag0 = clone_drag(_drag)
           } else {
