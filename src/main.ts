@@ -1,4 +1,4 @@
-import { App } from 'blah'
+import { App, batch } from 'blah'
 import Game from './game'
 import Input from './input'
 
@@ -18,7 +18,7 @@ const app = (element: HTMLElement) => {
       game.update()
     },
     on_render() {
-      game.render()
+      game.draw(batch)
     }
   })
 

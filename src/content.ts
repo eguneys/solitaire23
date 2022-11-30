@@ -74,8 +74,12 @@ class Content {
     })
 
 
+    let font_json = {
+      ...content_font0_json,
+      size: 128
+    }
 
-    this.sp_font = SpriteFont.make(content_font0_json, font_image)
+    this.sp_font = SpriteFont.make(font_json, font_image)
   }
 
 

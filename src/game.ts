@@ -1,101 +1,125 @@
 import { TextureFilter, TextureSampler } from 'blah'
 import { Color } from 'blah'
 import { Vec2, Mat3x2 } from 'blah'
-import { App, batch } from 'blah'
-import { Target } from 'blah'
-
-import { World } from './world'
-
-import { Batch } from 'blah'
-import { Entity, Component } from './world'
+import { App, batch, Batch, Target } from 'blah'
 
 import Content from './content'
 
-import { MainMenu } from './components/main_menu'
-import { HowtoPlay } from './components/howto_play'
-import { Input as InputComponent } from './components/input'
 
-export default class Game {
+abstract class Play {
 
+  position!: Vec2
 
-  static rand_int = (min: number, max: number) => {
-    return min + Math.floor(Math.random() * (max - min))
+  get font() {
+    return Content.sp_font
   }
+
+  _data: any
+
+  _set_data(position: Vec2, data: any): this { 
+    this.position = position
+    this._data = data 
+    return this
+  }
+
+  objects!: Array<Play>
+
+  make<T extends Play>(ctor: { new(...args: any[]): T}, position: Vec2, data: any) {
+    let res = new ctor()._set_data(position, data).init()
+    this.objects.push(res)
+  }
+
+  init(): this { 
+
+    this.objects = []
+
+    this._init()
+    return this 
+  }
+
+  update() {
+    this.objects.forEach(_ => _.update())
+    this._update()
+  }
+
+  draw(batch: Batch) {
+    this._draw(batch)
+  }
+
+  _draw_children(batch: Batch) {
+    this.objects.forEach(_ => _.draw(batch))
+  }
+
+  _init() {}
+  _update() {}
+  _draw(batch: Batch) {
+  
+    this._draw_children(batch)
+  }
+}
+
+class HowtoPlay extends Play {
+
+  _init() {
+
+    this.make(Navigation, Vec2.make(2, 2), {
+      route: 'how to play',
+      on_back() {
+        console.log('back')
+      }
+    })
+
+
+  }
+}
+
+type NavigationData = {
+  route: string,
+  on_back: () => void
+}
+
+class Navigation extends Play {
+
+  get data() {
+    return this._data as NavigationData
+  }
+
+  get route() {
+    return this.data.route
+  }
+
+  _draw(batch: Batch) {
+    batch.str_j(this.font, this.route, this.position, Vec2.zero, 128, Color.white)
+  }
+}
+
+
+export default class Game extends Play {
 
   static width = 640
   static height = 360
 
+  _init() {
 
-  static card_width = 140
-  static card_height = 200
+    batch.default_sampler = TextureSampler.make(TextureFilter.Linear)
 
-  buffer!: Target
-
-  world!: World
-
-  init() {
-
-    this.world = new World()
-
-    this.buffer = Target.create(Game.width, Game.height)
-
-    batch.default_sampler = TextureSampler.make(TextureFilter.Nearest)
-
+    this.objects = []
 
     Content.load().then(() => {
-      this.load_room()
+      this.make(HowtoPlay, Vec2.zero, {})
     })
   }
 
-
-  load_room() {
-
-    let offset = Vec2.make(0, 0)
-
-    // MainMenu.make(this.world, offset)
-    HowtoPlay.make(this.world, offset)
-
-    InputComponent.make(this.world)
+  _update() {
   }
 
-  update() {
-    this.world.update()
-  }
+  _draw() {
 
-  render() {
+    App.backbuffer.clear(Color.black)
 
-    {
-
-      this.buffer.clear(Color.hex(0x150e22))
-
-      this.world.render(batch)
-
-
-      batch.render(this.buffer)
-      batch.clear()
-    }
-
+    this._draw_children(batch)
 
     {
-      let scale = Math.min(
-        App.backbuffer.width / this.buffer.width,
-        App.backbuffer.height / this.buffer.height)
-
-        let screen_center = Vec2.make(App.backbuffer.width, App.backbuffer.height).scale(1/2)
-        let buffer_center = Vec2.make(this.buffer.width, this.buffer.height).scale(1/2)
-
-        App.backbuffer.clear(Color.black)
-                                                  
-        batch.push_matrix(Mat3x2.create_transform(screen_center, // position
-                                                  buffer_center, // origin
-                                                  Vec2.one.scale(scale), // scale
-                                                  0                      // rotation
-                                                 ))
-
-        batch.tex(this.buffer.texture(0), Vec2.zero, Color.white)
-
-        batch.pop_matrix()
-
         batch.render(App.backbuffer)
         batch.clear()
     }
