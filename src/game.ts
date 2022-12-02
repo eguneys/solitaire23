@@ -330,7 +330,7 @@ class StatsGameList extends Play {
 
     let items = []
 
-    for (let i =0 ; i < 5; i++) {
+    for (let i =0 ; i < 10; i++) {
       items.push({
         game: 'spider' + i,
         date: '20 July 2020',
@@ -344,7 +344,8 @@ class StatsGameList extends Play {
       w: 1340,
       h: 660,
       items,
-      ItemContent: MiniGameListItem
+      ItemContent: MiniGameListItem,
+      no_content: 'No games to show.'
     })
   }
 }
@@ -730,7 +731,7 @@ type TextData = {
   color?: Color
 }
 
-class Text extends Play {
+export class Text extends Play {
 
   get data() {
     return this._data as TextData

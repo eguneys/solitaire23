@@ -11,6 +11,194 @@ import { Transition, transition } from './transition'
 
 import { rmap, ease, lerp, appr } from './lerp'
 import { Play, PlayType } from './play'
+import { Text } from './game'
+
+
+class Runway<T, View> {
+
+
+  get i_top0() {
+    return Math.max(0, this._i0 - this._window)
+  }
+
+  get i_bottom0() {
+    return Math.min(this._i0 + this._window, this.items.length - 1)
+  }
+
+  get i_top() {
+    return Math.max(0, this._i - this._window)
+  }
+
+  get i_bottom() {
+    return Math.min(this._i + this._window, this.items.length - 1)
+  }
+
+  _i: number
+  _i0: number
+  set i(i: number) {
+    if (i < 0 || i >= this.items.length) {
+      return
+    }
+    if (i !== this._i) {
+      this._i = i
+      this._refresh()
+    }
+  }
+
+  runway: Array<View>
+
+  constructor(readonly _window: number,
+              readonly make: (item: T, index: number) => View,
+              readonly dispose: (v: View) => void,
+              readonly items: Array<T>) {
+    this.runway = []
+    this._i = 0
+    this._i0 = 0
+
+    for (let i = this.i_top0; i <= this.i_bottom0; i++) {
+      this.runway.push(this.make(this.items[i], i))
+    }
+  }
+
+  _refresh() {
+
+    for (let i = this.i_top - 1; i >= this.i_top0; i--) {
+      let _ = this.runway.splice(i - (this.i_top - 1), 1)
+      this.dispose(_[0])
+    }
+
+    for (let i = this.i_bottom0 + 1; i <= this.i_bottom; i++) {
+      this.runway.push(this.make(this.items[i], i))
+    }
+
+    for (let i = this.i_bottom0; i > this.i_bottom; i--) {
+      let _ = this.runway.pop()!
+      this.dispose(_)
+    }
+
+    for (let i = this.i_top0 - 1; i >= this.i_top; i--) {
+      this.runway.unshift(this.make(this.items[i], i))
+    }
+
+    this._i0 = this._i
+  }
+
+}
+
+let test = () => {
+
+
+  const same = (a: Array<any>, b: Array<any>) => {
+    if (a.length !== b.length) {
+      console.log(a, b)
+      return
+    }
+    if (a.find((a, i) => a !== b[i])) {
+      console.log(a, b)
+    }
+  }
+
+  let mades: Array<any> = [],
+  disposes: Array<any> = []
+  const expect = (a: Array<any>, b: Array<any>, _mades: Array<any>, _disposes: Array<any>) => {
+    same(a, b)
+    same(mades, _mades)
+    same(disposes, _disposes)
+    mades = []
+    disposes = []
+  }
+
+  let r = new Runway(2, _ => { mades.push(_); return _ }, _ => { disposes.push(_); return _ }, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+  expect(r.runway, [1, 2, 3], [1, 2, 3], [])
+
+  r.i = 1
+  expect(r.runway, [1, 2, 3, 4], [4], [])
+
+  r.i = 2
+  expect(r.runway, [1, 2, 3, 4, 5], [5], [])
+
+  r.i = 3
+  expect(r.runway, [2, 3, 4, 5, 6], [6], [1])
+
+  r.i = 4
+  expect(r.runway, [3, 4, 5, 6, 7], [7], [2])
+
+  r.i = 5
+  expect(r.runway, [4, 5, 6, 7, 8], [8], [3])
+
+  r.i = 6
+  expect(r.runway, [5, 6, 7, 8, 9], [9], [4])
+
+  r.i = 7
+  expect(r.runway, [6, 7, 8, 9, 10], [10], [5])
+
+  r.i = 8
+  expect(r.runway, [7, 8, 9, 10], [], [6])
+
+  r.i = 9
+  expect(r.runway, [8, 9, 10], [], [7])
+
+
+  r.i = 10
+  expect(r.runway, [8, 9, 10], [], [])
+
+  r.i = 11
+  expect(r.runway, [8, 9, 10], [], [])
+
+  r.i = 12
+  expect(r.runway, [8, 9, 10], [], [])
+
+
+  r.i = 11
+  expect(r.runway, [8, 9, 10], [], [])
+
+  r.i = 10
+  expect(r.runway, [8, 9, 10], [], [])
+
+  r.i = 9
+  expect(r.runway, [8, 9, 10], [], [])
+
+  r.i = 8
+  expect(r.runway, [7, 8, 9, 10], [7], [])
+
+  r.i = 7
+  expect(r.runway, [6, 7, 8, 9, 10], [6], [])
+
+  r.i = 6
+  expect(r.runway, [5, 6, 7, 8, 9], [5], [10])
+
+  r.i = 5
+  expect(r.runway, [4, 5, 6, 7, 8], [4], [9])
+
+
+  r.i = 4
+  expect(r.runway, [3, 4, 5, 6, 7], [3], [8])
+
+
+  r.i = 3
+  expect(r.runway, [2, 3, 4, 5, 6], [2], [7])
+
+  r.i = 2
+  expect(r.runway, [1, 2, 3, 4, 5], [1], [6])
+
+  r.i = 1
+  expect(r.runway, [1, 2, 3, 4], [], [5])
+
+
+  r.i = 0
+  expect(r.runway, [1, 2, 3], [], [4])
+
+  r.i = -1
+  expect(r.runway, [1, 2, 3], [], [4])
+
+  r.i = -2
+  expect(r.runway, [1, 2, 3], [], [4])
+
+  console.log('well done')
+}
+
+// test()
+
 
 
 type RectData = {
@@ -31,6 +219,14 @@ class RectView extends Play {
   }
 }
 
+export type InfiniteLongListData = {
+  w: number,
+  h: number,
+  items: Array<any>,
+  ItemContent: PlayType<Play>,
+  no_content: string
+}
+
 
 export class InfiniteScrollableList extends Play {
 
@@ -41,27 +237,29 @@ export class InfiniteScrollableList extends Play {
 
   _init() {
 
-    let content = this._make(InfiniteLongList, Vec2.make(0, 0), this.data)
+    if (this.data.items.length === 0) {
+      this.make(Text, Vec2.make(this.data.w/2, this.data.h*0.25), {
+        text: this.data.no_content,
+        center: true
+      })
+
+    } else {
+
+      let content = this._make(InfiniteLongList, Vec2.make(0, 0), this.data)
 
 
-    this.make(InfiniteScrollableContent, Vec2.make(0, 0), {
-      w: this.data.w,
-      h: this.data.h,
-      content
-    })
+      this.make(InfiniteScrollableContent, Vec2.make(0, 0), {
+        w: this.data.w,
+        h: this.data.h,
+        content
+      })
+    }
 
 
   }
 }
 
-export type InfiniteLongListData = {
-  w: number,
-  h: number,
-  items: Array<any>
-  ItemContent: PlayType<Play>
-}
-
-export class InfiniteLongList extends Play {
+class InfiniteLongList extends Play {
 
   get data() {
     return this._data as InfiniteLongListData
@@ -80,12 +278,7 @@ export class InfiniteLongList extends Play {
     if (this._viewport_y !== y) {
       this._viewport_y = y
       this._adjust_viewport()
-
-      let delta = this.i - this._i0
-
-      if (Math.abs(delta) > 0) {
-        this._refresh_views(delta)
-      }
+      this.runway.i = this.i
     }
   }
 
@@ -93,74 +286,28 @@ export class InfiniteLongList extends Play {
   get i() {
     return Math.round(- this._viewport_y / this.item_height)
   }
-  _i0!: number
 
-  get item_height() {
-    return (this.runway[0] as any)?.height ?? 1
-  }
 
-  runway!: Array<Play>
+  item_height!: number
+  runway!: Runway<any, any>
 
   _init() {
-    this.runway = []
-    this._i0 = this.i
 
-    this._refresh_views(0)
+    this.item_height = (this._make(this.data.ItemContent, Vec2.make(0, 0), this.data.items[0]) as any).height
+
+    const on_make = (item: any, i: number) =>
+      this.make(this.data.ItemContent, Vec2.make(0, i * this.item_height), item)
+
+    const on_dispose = (v: any) => v.dispose()
+
+    this.runway = new Runway(5, on_make, on_dispose, this.data.items)
   }
 
   _adjust_viewport() {
     this.position.y = this._viewport_y
   }
 
-  _update() {
-    //console.log(this.runway.length)
-  }
-
-  _refresh_views(delta: number) {
-    console.log(this.i, delta, this.runway.length)
-    if (this.i < 0) {
-      return
-    }
-    if (delta === 0) {
-
-      let h = 0
-      this.data.items.slice(0, 10).forEach(item => {
-        let _ = this.make(this.data.ItemContent, Vec2.make(0, h), item)
-        h += (_ as any).height
-        this.runway.push(_)
-      })
-
-    } else if (delta > 0) {
-      if (this.runway.length < delta) {
-      } else {
-        let removed = this.runway.splice(0, delta)
-        removed.forEach(_ => _.dispose())
-      }
-
-      let h = this.runway[this.runway.length - 1].position.y + this.item_height
-      this.data.items.slice(this.i - delta + 10, this.i + 10).forEach(item => {
-        let _ = this.make(this.data.ItemContent, Vec2.make(0, h), item)
-        h += (_ as any).height
-        this.runway.push(_)
-      })
-
-    } else {
-      let removed = this.runway.splice(this.runway.length + delta)
-      removed.forEach(_ => _.dispose())
-
-      let h = this.runway[0].position.y - this.item_height * - delta
-      this.data.items.slice(this.i, this.i - delta).forEach(item => {
-        let _ = this.make(this.data.ItemContent, Vec2.make(0, h), item)
-        h += (_ as any).height
-        this.runway.unshift(_)
-      })
-    }
-
-    this._i0 = this.i
-  }
-
 }
-
 
 type ScrollableContentData = {
   w: number,
@@ -168,7 +315,7 @@ type ScrollableContentData = {
   content: InfiniteLongList
 }
 
-export class InfiniteScrollableContent extends Play {
+class InfiniteScrollableContent extends Play {
 
   get data() {
     return this._data as ScrollableContentData
@@ -258,7 +405,7 @@ export class InfiniteScrollableContent extends Play {
     this.thumb.position.y = -(this.scroll_y + this.scroll_off + this.scroll_edge_off) / (this.data.content as any).height * this.height
 
     this.data.content.viewport_y = 
-      40 + this.scroll_y + this.scroll_off + this.scroll_edge_off
+      this.scroll_y + this.scroll_off + this.scroll_edge_off
 
     this.data.content.update()
   }
