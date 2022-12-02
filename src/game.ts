@@ -8,110 +8,10 @@ import Input, { Hooks, EventPosition, DragEvent } from './input'
 import { howtos } from './howtos'
 import { Transition, transition } from './transition'
 
-function rmap(t: number, min: number, max: number) {
-  return min + (max - min) * t
-}
+import { rmap, ease, lerp, appr } from './lerp'
+import { InfiniteScrollableList } from './scrollable'
 
-function lerp(a: number, b: number, t: number) {
-  return a + (b - a) * t
-}
-
-function appr(value: number, target: number, dt: number)  {
-  if (value < target) {
-    return Math.min(value + dt, target)
-  }else {
-    return Math.max(value - dt, target)
-  }
-}
-
-function ease(t: number) {
-  return t<.5 ? 2*t*t : -1+(4-2*t)*t
-}
-
-const bg1 = Color.hex(0x202431)
-const link_color = Color.hex(0x4ab2cd)
-
-
-abstract class Play {
-
-  g_position!: Vec2
-  position!: Vec2
-
-  get font() {
-    return Content.sp_font
-  }
-
-  _data: any
-
-  _set_data(position: Vec2, data: any): this { 
-    this.g_position = Vec2.zero
-    this.position = position
-    this._data = data 
-    return this
-  }
-
-  unbindable_input(hooks: Hooks) {
-    this._disposes.push(Input.register(hooks))
-  }
-
-  _disposes!: Array<() => void>
-  objects!: Array<Play>
-
-  _add_object(child: Play) {
-    this.objects.push(child)
-  }
-
-  _make<T extends Play>(ctor: { new(...args: any[]): T}, position: Vec2, data: any) {
-    let res = new ctor()._set_data(position, data).init()
-    return res
-  }
-
-  make<T extends Play>(ctor: { new(...args: any[]): T}, position: Vec2, data: any) {
-    let res = this._make(ctor, position, data)
-    this._add_object(res)
-    return res
-  }
-
-  init(): this { 
-
-    this._disposes = []
-    this.objects = []
-
-    this._init()
-    return this 
-  }
-
-  update() {
-    this.objects.forEach(_ => _.update())
-    this._update()
-  }
-
-  draw(batch: Batch) {
-    this._draw(batch)
-  }
-
-  _draw_children(batch: Batch) {
-    this.objects.forEach(_ => _.draw(batch))
-  }
-
-  dispose() {
-    this.objects.forEach(_ => _.dispose())
-    this._dispose()
-
-    this._disposes.forEach(_ => _())
-
-  }
-
-  _init() {}
-  _update() {}
-  _draw(batch: Batch) {
-    batch.push_matrix(Mat3x2.create_translation(this.position))
-    this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
-    this._draw_children(batch)
-    batch.pop_matrix()
-  }
-  _dispose() {}
-}
+import { bg1, link_color, Play, PlayType} from './play'
 
 type RectData = {
   w: number,
@@ -227,7 +127,6 @@ class Clickable extends Play {
   }
 
 }
-export type PlayType<T extends Play> = { new(...args: any[]): T}
 
 type MainSideBarItemData = {
   icon: string,
@@ -416,7 +315,7 @@ class StatsGamesPlayed extends Play {
       this._make(StatsGameList, Vec2.zero, {})
     ]
 
-    this.make(TabPanel, Vec2.make(0, 0), {
+    this.make(TabPanel, Vec2.make(0, 180), {
       w: 0,
       h: 0,
       panels
@@ -429,25 +328,93 @@ class StatsGamesPlayed extends Play {
 class StatsGameList extends Play {
   _init() {
 
-    this.make(ScrollableList, Vec2.make(20, 120), {
+    let items = []
+
+    for (let i =0 ; i < 5; i++) {
+      items.push({
+        game: 'spider' + i,
+        date: '20 July 2020',
+        points: '20 points',
+        status: 'over'
+      })
+    }
+
+
+    this.make(InfiniteScrollableList, Vec2.make(20, 8), {
       w: 1340,
       h: 660,
-      items: [],
-      item_content: MiniGameListItem
+      items,
+      ItemContent: MiniGameListItem
     })
   }
 }
 
 
+type GameListItemData = {
+  game: string,
+  date: string,
+  points: string,
+  status: string
+}
+
 class MiniGameListItem extends Play {
+
+  get data() {
+    return this._data as GameListItemData
+  }
+
+  get height() {
+    return 300
+  }
 
   _init() {
 
     this.make(RectView, Vec2.make(0, 0), {
-      w: 1340,
-      h: 800,
+      w: 1260,
+      h: this.height,
       color: Color.black
     })
+
+
+    this.make(RectView, Vec2.make(8, 8), {
+      w: 1260 - 16,
+      h: 300 - 16,
+      color: bg1
+    })
+
+
+    this.make(RectView, Vec2.make(16, 16), {
+      w: 400,
+      h: 300 - 16 - 16,
+      color: Color.white
+    })
+
+
+    let _
+
+    _ = this.make(Text, Vec2.make(480, 16), {
+      size: 96,
+      text: this.data.game
+    })
+
+    _ = this.make(Text, Vec2.make(480, 16 + _.height), {
+      size: 96,
+      text: this.data.date
+    })
+
+    _ = this.make(Text, Vec2.make(480, 16 + _.height * 2), {
+      size: 96,
+      text: this.data.points
+    })
+
+    _ = this.make(Text, Vec2.make(480, 16 + _.height * 3), {
+      size: 96,
+      text: this.data.status
+    })
+
+
+
+
   }
 
 }
@@ -463,17 +430,24 @@ class ScrollableList<T> extends Play {
   get data() {
     return this._data as ScrollableListData<T>
   }
+  
+  scrollable!: ScrollableContent
+  long_content!: ScrollableListLongContent<T>
 
   _init() {
 
-    let content = this._make(ScrollableListLongContent, Vec2.make(0, 0), this.data)
+    let content = this._make(ScrollableListLongContent<T>, Vec2.make(0, 0), this.data)
+    this.long_content = content
 
-    this.make(ScrollableContent, Vec2.make(20, 120), {
+    this.scrollable = this.make(ScrollableContent, Vec2.make(20, 120), {
       w: this.data.w,
       h: this.data.h,
       content
     })
+  }
 
+  _update() {
+    this.long_content.scroll_y = this.scrollable.scroll_y
   }
 }
 
@@ -483,11 +457,34 @@ class ScrollableListLongContent<T> extends Play {
     return this._data as ScrollableListData<T>
   }
 
+  _scroll_y: number = 0
+  set scroll_y(y: number) {
+    if (this._scroll_y !== y) {
+      this._scroll_y = y
+    }
+  }
 
+  height!: number
 
   _init() {
-    this.make(this.data.item_content, Vec2.make(0, 0), {})
+
+
+
+
+    let h = 0
+    for (let i = 0; i < this.data.items.length; i++) {
+      let _ = this.data.items[i]
+      let v = this.make(this.data.item_content, Vec2.make(0, h), _)
+      h += (v as any).height + 2
+      if (h > this.data.h) {
+        break
+      }
+    }
+
+    this.height = h + 100
   }
+
+
 }
 
 class HowtoPlay extends Play {
@@ -881,6 +878,10 @@ class TabPanel extends Play {
     })
   }
 
+  _update() {
+    this.data.panels.forEach(_ => _.update())
+  }
+
   _draw(batch: Batch) {
     batch.push_matrix(Mat3x2.create_translation(this.position))
     this._draw_children(batch)
@@ -919,6 +920,7 @@ class ScrollableContent extends Play {
 
   scroll_y!: number
   scroll_off!: number
+  scroll_edge_off!: number
 
   thumb!: Play
 
@@ -930,6 +932,7 @@ class ScrollableContent extends Play {
 
     this.scroll_y = 0
     this.scroll_off = 0
+    this.scroll_edge_off = 0
 
     this.make(RectView, Vec2.zero, {
       w: this.data.w,
@@ -961,26 +964,33 @@ class ScrollableContent extends Play {
       on_up(e: Vec2, right: boolean) {
         self.scroll_y += self.scroll_off
         self.scroll_off = 0
+
+        if (self.scroll_y > 0) {
+          self.scroll_edge_off = self.scroll_y
+          self.scroll_y = 0
+        }
+        let edge = -(self.content as any).height + self.data.h
+        if (self.scroll_y < edge) {
+          self.scroll_edge_off = self.scroll_y - edge
+          self.scroll_y = edge
+        }
+
         return true
       }
     })
-
   }
 
   _update() {
-    if (this.scroll_y > 0) {
-      this.scroll_y = lerp(this.scroll_y, 0, 0.2)
-    }
-    if (this.scroll_y < -(this.content as any).height + this.data.h) {
-      this.scroll_y = lerp(this.scroll_y, -(this.content as any).height + this.data.h, 0.2)
-    }
 
-    this.thumb.position.y = -(this.scroll_y + this.scroll_off) / (this.content as any).height * this.height
+    this.scroll_edge_off = lerp(this.scroll_edge_off, 0, 0.2)
+
+    this.thumb.position.y = -(this.scroll_y + this.scroll_off + this.scroll_edge_off) / (this.content as any).height * this.height
 
     this.data.content.position.set_in(
       this.content_base_position.add(Vec2.make(
-        40, 40 + this.scroll_y + this.scroll_off)))
+        40, 40 + this.scroll_y + this.scroll_off + this.scroll_edge_off)))
 
+    this.content.update()
 
   }
 
