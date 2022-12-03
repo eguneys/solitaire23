@@ -42,6 +42,10 @@ export class Anim extends Play {
     return this.frame?.duration
   }
 
+  play(name: string) {
+    this._animation = name
+  }
+
 
   _draw(batch: Batch) {
 

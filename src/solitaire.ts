@@ -20,6 +20,63 @@ import { scene_transition }from './game'
 
 import { HowtoPlay, Settings, About } from './game'
 
+class Card extends Play {
+
+  anim!: Anim
+
+  _init() {
+
+     this.anim = this.make(Anim, Vec2.zero, { name: 'card' })
+     this.anim.play('idle')
+
+     let self = this
+     this.make(Clickable, Vec2.make(8, 8), {
+       rect: Rect.make(0, 0, 180, 220),
+       on_hover() {
+         self.anim.play('hover')
+       },
+       on_hover_end() {
+         self.anim.play('idle')
+       },
+       on_click() {
+         self.anim.play('idle')
+       }
+     })
+
+  }
+}
+
+class SolitaireGameArea extends Play {
+
+
+  _init() {
+
+    let x = 280
+    let w = 200
+    let h = 248
+    this.make(Card, Vec2.make(x, 40), {})
+    this.make(Card, Vec2.make(x + w, 40), {})
+    this.make(Card, Vec2.make(x + w * 2, 40), {})
+    this.make(Card, Vec2.make(x + w * 3, 40), {})
+    this.make(Card, Vec2.make(x + w * 4, 40), {})
+    this.make(Card, Vec2.make(x + w * 5, 40), {})
+    this.make(Card, Vec2.make(x + w * 6, 40), {})
+
+    this.make(Card, Vec2.make(x + w * 7.1, 40), {})
+    this.make(Card, Vec2.make(x + w * 7.1, 40 + h), {})
+    this.make(Card, Vec2.make(x + w * 7.1, 40 + h * 2), {})
+    this.make(Card, Vec2.make(x + w * 7.1, 40 + h * 3), {})
+
+
+    let stock_x = 30
+    let stock_y = 200
+
+    this.make(Card, Vec2.make(stock_x, stock_y), {})
+    this.make(Card, Vec2.make(stock_x, stock_y + h * 1.05), {})
+  }
+
+
+}
 
 export class SolitairePlay extends Play {
 
@@ -28,6 +85,8 @@ export class SolitairePlay extends Play {
     let sidebar: SideBar
 
     this.make(Background, Vec2.zero, undefined)
+
+    this.make(SolitaireGameArea, Vec2.make(0, 0), {})
 
     let overlay = this.make(RectView, Vec2.zero, {
       w: 1920,
@@ -43,8 +102,10 @@ export class SolitairePlay extends Play {
       }
     })
 
-    sidebar = this.make(SideBar, Vec2.make(0, 180), {
+    sidebar = this.make(SideBar, Vec2.make(-400, 180), {
     })
+
+
   }
 }
 

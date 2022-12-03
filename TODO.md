@@ -54,3 +54,48 @@
 
 - Freecell View
 - Spider View
+
+
+- Game Area
+ 
+  - Background
+  
+  - Card design
+    - Suits
+      - Diamond
+      - Clubs
+      - Spades
+      - Heart
+    - Ranks
+      - Ace
+      - King
+      - Queen
+      - Joker
+      - 10-2
+    - Back
+    - Flip
+    - Hover
+    - Click
+    - Selected
+    - Cant select
+    - Stack Top view
+  
+  - Stock
+    - Deck Stack
+    - Empty stack
+    - Can't deal icon
+    - Redeal icon
+    - Redeal animation
+  
+  - Score animations
+    - waste to tableu
+    - waste to foundation
+    - tableu to foundation
+    - turn over tableu card
+    - foundation to tableu
+    - recycle waste
+    - undo a move
+  
+  - card to foundation highlight anim
+ 
+~ several design settings
