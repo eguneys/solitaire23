@@ -1,1 +1,1 @@
-{"sprites":[{"name":"main_card_bg","tags":[{"from":0,"to":0,"name":"idle"}],"packs":[{"frame":{"x":0,"y":0,"w":420,"h":520},"packed":{"x":0,"y":0,"w":420,"h":520}}]}]}
+{"sprites":[{"name":"main_card_bg","tags":[{"from":0,"to":0,"name":"idle"}],"packs":[{"frame":{"x":0,"y":0,"w":420,"h":520},"packed":{"x":0,"y":0,"w":420,"h":520}}]},{"name":"menu_bar","tags":[{"from":0,"to":0,"name":"idle"}],"packs":[{"frame":{"x":0,"y":0,"w":240,"h":160},"packed":{"x":0,"y":520,"w":240,"h":160}}]}]}

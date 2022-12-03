@@ -17,6 +17,7 @@ export const link_color = Color.hex(0x4ab2cd)
 
 export abstract class Play {
 
+  visible: boolean = true
   g_position!: Vec2
   position!: Vec2
 
@@ -72,7 +73,9 @@ export abstract class Play {
   }
 
   draw(batch: Batch) {
-    this._draw(batch)
+    if (this.visible) {
+      this._draw(batch)
+    }
   }
 
   _draw_children(batch: Batch) {

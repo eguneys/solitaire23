@@ -23,7 +23,7 @@ type RectData = {
   color?: Color
 }
 
-class RectView extends Play {
+export class RectView extends Play {
 
   get data() {
     return this._data as RectData
@@ -83,7 +83,7 @@ type ClickableData = {
   on_click?: () => void
 }
 
-class Clickable extends Play {
+export class Clickable extends Play {
 
   get data() {
     return this._data as ClickableData
@@ -558,7 +558,7 @@ class ScrollableListLongContent<T> extends Play {
 }
 
 
-class Settings extends Play {
+export class Settings extends Play {
   _init() {
 
     this.make(Background, Vec2.zero, undefined)
@@ -586,7 +586,7 @@ class Settings extends Play {
 
   }
 }
-class About extends Play {
+export class About extends Play {
   _init() {
 
     this.make(Background, Vec2.zero, undefined)
@@ -615,7 +615,7 @@ class About extends Play {
   }
 }
 
-class HowtoPlay extends Play {
+export class HowtoPlay extends Play {
 
   _init() {
 
@@ -1214,7 +1214,8 @@ class SceneTransition extends Play {
     this.target = Target.create(Game.width, Game.height)
     this.mask_target = Target.create(Game.width, Game.height)
 
-    this.current = this._make(MainMenu, Vec2.zero, {})
+    this.current = this._make(SolitairePlay, Vec2.zero, {})
+    // this.current = this._make(MainMenu, Vec2.zero, {})
     //this.current = this._make(Statistics, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
