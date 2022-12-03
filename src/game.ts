@@ -13,6 +13,10 @@ import { InfiniteScrollableList } from './scrollable'
 
 import { bg1, link_color, Play, PlayType} from './play'
 
+import { Anim } from './anim'
+
+import { SolitairePlay } from './solitaire'
+
 type RectData = {
   w: number,
   h: number,
@@ -30,7 +34,7 @@ class RectView extends Play {
   }
 }
 
-class Background extends Play {
+export class Background extends Play {
   _init() {
 
     this.make(RectView, Vec2.make(0, 0), {
@@ -72,6 +76,7 @@ class MainTitle extends Play {
 
 
 type ClickableData = {
+  debug?: true,
   rect: Rect,
   on_hover?: () => void,
   on_hover_end?: () => void,
@@ -124,6 +129,15 @@ class Clickable extends Play {
         return false
       }
     })
+  }
+
+  _draw() {
+    batch.push_matrix(Mat3x2.create_translation(this.position))
+    this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
+    if (this.data.debug) {
+      batch.rect(Rect.make(0, 0, this.width, this.height), Color.hex(0x00ff00))
+    }
+    batch.pop_matrix()
   }
 
 }
@@ -194,11 +208,11 @@ class MainSideBar extends Play {
 
     _ = this._make(MainSideBarItem, Vec2.make(0, 0), { icon: 'how to play', next: HowtoPlay })
     tabs.push(_)
-    _ = this._make(MainSideBarItem, Vec2.make(0, _.height), { icon: 'settings', next: HowtoPlay })
+    _ = this._make(MainSideBarItem, Vec2.make(0, _.height), { icon: 'settings', next: Settings })
     tabs.push(_)
     _ = this._make(MainSideBarItem, Vec2.make(0, _.height * 2), { icon: 'statistics', next: Statistics })
     tabs.push(_)
-    _ = this._make(MainSideBarItem, Vec2.make(0, _.height * 3), { icon: 'about', next: HowtoPlay })
+    _ = this._make(MainSideBarItem, Vec2.make(0, _.height * 3), { icon: 'about', next: About })
     tabs.push(_)
 
     this.make(Tabs, Vec2.make(4, 4), {
@@ -209,7 +223,7 @@ class MainSideBar extends Play {
   }
 }
 
-class MainMenu extends Play {
+export class MainMenu extends Play {
   _init() {
 
     this.make(Background, Vec2.zero, undefined)
@@ -218,6 +232,64 @@ class MainMenu extends Play {
 
     this.make(MainSideBar, Vec2.make(1320, 100), {})
 
+    this.make(MainCards, Vec2.make(80, 260), {})
+
+  }
+}
+
+
+class MainCards extends Play {
+
+
+  _init() {
+    let w = 380
+    this.make(MainCard, Vec2.make(0, 0), {
+      text: 'solitaire'
+    })
+    this.make(MainCard, Vec2.make(w, 0), {
+      text: 'freecell'
+    })
+    this.make(MainCard, Vec2.make(w * 2, 0), {
+      text: 'spider'
+    })
+  }
+
+}
+
+type MainCardData = {
+  text: string
+}
+
+class MainCard extends Play {
+
+  get data() {
+    return this._data as MainCardData
+  }
+
+  _init() {
+
+    this.make(Anim, Vec2.make(0, 0), {
+      name: 'main_card_bg'
+    })
+
+    let text = this.make(Text, Vec2.make(-450, 200), {
+      text: this.data.text,
+      rotation: - Math.PI * 0.5,
+      color: Color.black
+    })
+
+    this.make(Clickable, Vec2.make(60, 64), {
+      rect: Rect.make(0, 0, 300, 420),
+      on_click() {
+        scene_transition.next(SolitairePlay)
+      },
+      on_hover() {
+        text.color = Color.red
+      },
+      on_hover_end() {
+        text.color = Color.black
+      }
+    })
   }
 }
 
@@ -485,6 +557,64 @@ class ScrollableListLongContent<T> extends Play {
 
 }
 
+
+class Settings extends Play {
+  _init() {
+
+    this.make(Background, Vec2.zero, undefined)
+
+    let self = this
+    this.make(Navigation, Vec2.zero, {
+      route: 'settings',
+      on_back() {
+        scene_transition.next(MainMenu)
+      }
+    })
+
+
+    let content = this._make(RectView, Vec2.make(0, 0), {
+      w: 100,
+      h: 100
+    })
+
+    this.make(ScrollableContent, Vec2.make(20, 120), {
+      w: 1880,
+      h: 940,
+      content
+    })
+
+
+  }
+}
+class About extends Play {
+  _init() {
+
+    this.make(Background, Vec2.zero, undefined)
+
+    let self = this
+    this.make(Navigation, Vec2.zero, {
+      route: 'about',
+      on_back() {
+        scene_transition.next(MainMenu)
+      }
+    })
+
+
+    let content = this._make(LongHyperText, Vec2.make(0, 0), {
+      width: 1880 - 80,
+      content: howtos['about']
+    })
+
+    this.make(ScrollableContent, Vec2.make(20, 120), {
+      w: 1880,
+      h: 940,
+      content
+    })
+
+
+  }
+}
+
 class HowtoPlay extends Play {
 
   _init() {
@@ -523,7 +653,7 @@ class HowtoPlay extends Play {
 
     let content = this._make(LongHyperText, Vec2.make(0, 0), {
       width: 1880 - 80,
-      content: howtos['about']
+      content: howtos['solitaire']
     })
 
     this.make(ScrollableContent, Vec2.make(20, 120), {
@@ -669,7 +799,7 @@ type NavigationData = {
   on_back: () => void
 }
 
-class Navigation extends Play {
+export class Navigation extends Play {
 
   get data() {
     return this._data as NavigationData
@@ -726,12 +856,17 @@ type TextData = {
   text: string,
   center?: true,
   color?: Color
+  rotation?: number
 }
 
 export class Text extends Play {
 
   get data() {
     return this._data as TextData
+  }
+
+  get rotation() {
+    return this.data.rotation ?? 0
   }
 
   get origin() {
@@ -768,7 +903,7 @@ export class Text extends Play {
 
 
   _draw(batch: Batch) {
-    batch.push_matrix(Mat3x2.create_transform(Vec2.zero, this.origin, Vec2.one, 0))
+    batch.push_matrix(Mat3x2.create_transform(Vec2.zero, this.origin, Vec2.one, this.rotation))
 
     this.g_position = Vec2.transform(this.position, batch.m_matrix)
     batch.str_j(this.font, this.text, this.position, this.justify, this.size, this.color)
@@ -1130,7 +1265,7 @@ class SceneTransition extends Play {
   }
 }
 
-let scene_transition: SceneTransition
+export let scene_transition: SceneTransition
 
 export default class Game extends Play {
 
