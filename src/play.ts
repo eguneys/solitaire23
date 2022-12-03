@@ -81,14 +81,13 @@ export abstract class Play {
 
   dispose() {
 
-    if (this.parent) {
-      this.parent.objects.splice(this.parent.objects.indexOf(this), 1)
-    }
-    this.objects.forEach(_ => _.dispose())
+    this.objects.slice(0).forEach(_ => _.dispose())
     this._dispose()
 
     this._disposes.forEach(_ => _())
-
+    if (this.parent) {
+      this.parent.objects.splice(this.parent.objects.indexOf(this), 1)
+    }
   }
 
   _init() {}

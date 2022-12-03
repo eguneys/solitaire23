@@ -261,7 +261,6 @@ class Statistics extends Play {
       h: 920,
       panels
     })
-
   }
 }
 
@@ -320,8 +319,6 @@ class StatsGamesPlayed extends Play {
       h: 0,
       panels
     })
-
-
   }
 }
 
@@ -891,6 +888,9 @@ class TabPanel extends Play {
     batch.pop_matrix()
   }
 
+  _dispose() {
+    this.data.panels.forEach(_ => _.dispose())
+  }
 
 }
 
@@ -1079,8 +1079,8 @@ class SceneTransition extends Play {
     this.target = Target.create(Game.width, Game.height)
     this.mask_target = Target.create(Game.width, Game.height)
 
-    //this.current = this._make(MainMenu, Vec2.zero, {})
-    this.current = this._make(Statistics, Vec2.zero, {})
+    this.current = this._make(MainMenu, Vec2.zero, {})
+    //this.current = this._make(Statistics, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
 

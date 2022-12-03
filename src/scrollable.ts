@@ -287,13 +287,20 @@ class InfiniteLongList extends Play {
     return Math.round(- this._viewport_y / this.item_height)
   }
 
+  get height() {
+    return this.runway.i_bottom * this.item_height
+  }
 
-  item_height!: number
+  dummy_item!: Play
+
+  get item_height() {
+    return (this.dummy_item as any).height
+  }
   runway!: Runway<any, any>
 
   _init() {
 
-    this.item_height = (this._make(this.data.ItemContent, Vec2.make(0, 0), this.data.items[0]) as any).height
+    this.dummy_item = (this._make(this.data.ItemContent, Vec2.make(0, 0), this.data.items[0]) as any)
 
     const on_make = (item: any, i: number) =>
       this.make(this.data.ItemContent, Vec2.make(0, i * this.item_height), item)
@@ -305,6 +312,10 @@ class InfiniteLongList extends Play {
 
   _adjust_viewport() {
     this.position.y = this._viewport_y
+  }
+
+  _dispose() {
+    this.dummy_item.dispose()
   }
 
 }
