@@ -11,7 +11,8 @@
     "content": "node content.js"
   },
   "dependencies": {
-    "blah": "link:../blah"
+    "blah": "link:../blah",
+    "lsolitaire": "link:../lsolitaire"
   },
   "devDependencies": {
     "aset": "link:../aset",

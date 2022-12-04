@@ -865,14 +865,6 @@ export class Text extends Play {
     return this._data as TextData
   }
 
-  get rotation() {
-    return this.data.rotation ?? 0
-  }
-
-  get origin() {
-    return this.data.center ? Vec2.make(this.width / 2, 0) : Vec2.zero
-  }
-
   get justify() {
     return this.data.center ? Vec2.make(0, 0) : Vec2.zero
   }
@@ -901,6 +893,10 @@ export class Text extends Play {
     return this.font.height_of(this.text) / this.font.size * this.size
   } 
 
+  _init() {
+    this.rotation = this.data.rotation ?? 0
+    this.origin = this.data.center ? Vec2.make(this.width / 2, 0) : Vec2.zero
+  }
 
   _draw(batch: Batch) {
     batch.push_matrix(Mat3x2.create_transform(Vec2.zero, this.origin, Vec2.one, this.rotation))

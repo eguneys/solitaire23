@@ -8,6 +8,7 @@ import Input, { Hooks, EventPosition, DragEvent } from './input'
 import { howtos } from './howtos'
 import { Transition, transition } from './transition'
 
+import { Tween } from './tween'
 
 
 export const bg1 = Color.hex(0x202431)
@@ -20,6 +21,8 @@ export abstract class Play {
   visible: boolean = true
   g_position!: Vec2
   position!: Vec2
+  rotation!: number
+  origin: Vec2 = Vec2.zero
 
   get font() {
     return Content.sp_font
@@ -30,6 +33,7 @@ export abstract class Play {
   _set_data(position: Vec2, data: any): this { 
     this.g_position = Vec2.zero
     this.position = position
+    this.rotation = 0
     this._data = data 
     return this
   }
@@ -52,6 +56,29 @@ export abstract class Play {
     return res
   }
 
+  _tweens: Array<[Tween, (v: number) => void]> = []
+  tween(values: Array<number>, f: (v: number) => void, duration: Array<number> | number, loop: number = 0) {
+
+    duration = typeof duration === 'number' ? [duration] : duration
+    let t = new Tween(values, duration, loop).init()
+    this._tweens.push([t, f])
+    return t
+  }
+
+  cancel(t: Tween) {
+    this._tweens = this._tweens.filter(_ => _[0] !== t)
+  }
+
+  _tween?: Tween
+  tween_single(_ref: Tween | undefined, values: Array<number>, f: (v: number) => void, duration: Array<number> | number, loop: number = 0) {
+    if (_ref) {
+      this.cancel(_ref)
+    }
+    return this.tween(values, f, duration, loop)
+  }
+
+
+
   make<T extends Play>(ctor: { new(...args: any[]): T}, position: Vec2, data: any) {
     let res = this._make(ctor, position, data)
     this._add_object(res)
@@ -69,6 +96,13 @@ export abstract class Play {
 
   update() {
     this.objects.forEach(_ => _.update())
+
+    this._tweens = this._tweens.filter(([t, f]) => {
+      t.update(Time.delta)
+      f(t.value)
+      return !t.completed
+    })
+
     this._update()
   }
 
@@ -96,7 +130,7 @@ export abstract class Play {
   _init() {}
   _update() {}
   _draw(batch: Batch) {
-    batch.push_matrix(Mat3x2.create_translation(this.position))
+    batch.push_matrix(Mat3x2.create_transform(this.position, this.origin, Vec2.one, this.rotation))
     this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
     this._draw_children(batch)
     batch.pop_matrix()

@@ -27,6 +27,7 @@ export class Anim extends Play {
     return this.sprite.get(this._animation)
   }
 
+  _frame_counter: number = 0
   _frame: number = 0
 
   get frame() {
@@ -42,8 +43,50 @@ export class Anim extends Play {
     return this.frame?.duration
   }
 
-  play(name: string) {
+  _reverse: boolean = false
+  _on_complete?: () => void
+  play(name: string, on_complete?: () => void, reverse: boolean = false) {
+    this._on_complete = on_complete
     this._animation = name
+      this._frame = 0
+      
+      if (reverse) {
+        let frames_length = this.animation?.frames.length || 0
+        this._frame = frames_length - 1
+      }
+    this._reverse = reverse
+  }
+
+  _update() {
+
+    const frames_length = this.animation?.frames.length
+    const frame_duration = this.frame?.duration
+
+    if (frames_length && frame_duration) {
+
+      this._frame_counter += Time.delta
+
+      if (this._frame_counter >= frame_duration) {
+        this._frame_counter -= frame_duration
+        if (this._reverse) {
+          this._frame--;
+          if (this._frame < 0) {
+            this._frame = frames_length - 1
+            if (this._on_complete) {
+              this._on_complete()
+            }
+          }
+        } else {
+          this._frame++;
+          if (this._frame >= frames_length) {
+            this._frame = 0
+            if (this._on_complete) {
+              this._on_complete()
+            }
+          }
+        }
+      }
+    }
   }
 
 
@@ -53,8 +96,10 @@ export class Anim extends Play {
       return
     }
 
-
-    batch.stex(this.subtexture, this.position, Color.white)
+    batch.push_matrix(Mat3x2.create_transform(this.position, this.origin, Vec2.one, this.rotation))
+    this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
+    batch.stex(this.subtexture, Vec2.zero, Color.white)
+    batch.pop_matrix()
     
   }
 }

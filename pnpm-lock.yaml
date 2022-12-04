@@ -5,12 +5,14 @@ specifiers:
   blah: link:../blah
   chokidar: ^3.5.3
   concurrently: ^7.6.0
+  lsolitaire: link:../lsolitaire
   typescript: ^4.6.4
   vite: ^3.2.3
   vite-plugin-glsl: ^0.5.4
 
 dependencies:
   blah: link:../blah
+  lsolitaire: link:../lsolitaire
 
 devDependencies:
   aset: link:../aset
