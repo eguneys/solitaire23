@@ -20,11 +20,13 @@ import { scene_transition }from './game'
 
 import { HowtoPlay, Settings, About } from './game'
 
-import { card_sort_key, cards, Card as OCard } from 'lsolitaire'
+import { n_seven, card_sort_key, Cards, Card as OCard, SolitairePov, Solitaire } from 'lsolitaire'
 
 import { ticks } from './shared'
 import { RNG, random, int_random, v_random, v_random_h, v_screen, arr_random } from './util'
 import { Tween } from './tween'
+
+import { SolitaireGame } from './solitaire_game'
 
 type CardData = {
   card?: OCard,
@@ -622,27 +624,6 @@ class Dealer extends Play {
 
 }
 
-
-
-
-class SolitaireGame extends Play {
-
-
-  _init() {
-
-    let dealer = this.make(Dealer, Vec2.zero, {
-      cards
-    })
-
-    let loader = this.make(LoadSolitaireGame, Vec2.zero, {
-      cards
-    })
-
-  }
-
-
-}
-
 export class SolitairePlay extends Play {
 
   _init() {
@@ -651,7 +632,7 @@ export class SolitairePlay extends Play {
 
     this.make(Background, Vec2.zero, undefined)
 
-    this.make(SolitaireGame, Vec2.make(0, 0), {})
+    let game = this.make(SolitaireGame, Vec2.make(0, 0), {})
 
     let overlay = this.make(RectView, Vec2.zero, {
       w: 1920,

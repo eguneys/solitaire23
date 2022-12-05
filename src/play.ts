@@ -46,6 +46,27 @@ export abstract class Play {
   objects!: Array<Play>
   parent?: Play
 
+  get p_position(): Vec2 {
+    if (this.parent) {
+      return this.parent.p_position.add(this.position)
+    }
+    return this.position
+  }
+
+  send_front() {
+    if (this.parent) {
+      this.parent.objects.splice(this.parent.objects.indexOf(this), 1)
+      this.parent.objects.push(this)
+    }
+  }
+
+  send_back() {
+    if (this.parent) {
+      this.parent.objects.splice(this.parent.objects.indexOf(this), 1)
+      this.parent.objects.unshift(this)
+    }
+  }
+
   _add_object(child: Play) {
     this.objects.push(child)
     child.parent = this
@@ -56,12 +77,12 @@ export abstract class Play {
     return res
   }
 
-  _tweens: Array<[Tween, (v: number) => void]> = []
-  tween(values: Array<number>, f: (v: number) => void, duration: Array<number> | number, loop: number = 0) {
+  _tweens: Array<[Tween, (v: number) => void, (() => void) | undefined]> = []
+  tween(values: Array<number>, f: (v: number) => void, duration: Array<number> | number, loop: number = 0, on_complete?: () => void) {
 
     duration = typeof duration === 'number' ? [duration] : duration
     let t = new Tween(values, duration, loop).init()
-    this._tweens.push([t, f])
+    this._tweens.push([t, f, on_complete])
     return t
   }
 
@@ -70,11 +91,11 @@ export abstract class Play {
   }
 
   _tween?: Tween
-  tween_single(_ref: Tween | undefined, values: Array<number>, f: (v: number) => void, duration: Array<number> | number, loop: number = 0) {
+  tween_single(_ref: Tween | undefined, values: Array<number>, f: (v: number) => void, duration: Array<number> | number, loop: number = 0, on_complete?: () => void) {
     if (_ref) {
       this.cancel(_ref)
     }
-    return this.tween(values, f, duration, loop)
+    return this.tween(values, f, duration, loop, on_complete)
   }
 
 
@@ -97,9 +118,14 @@ export abstract class Play {
   update() {
     this.objects.forEach(_ => _.update())
 
-    this._tweens = this._tweens.filter(([t, f]) => {
+    this._tweens = this._tweens.filter(([t, f, on_complete]) => {
       t.update(Time.delta)
       f(t.value)
+      if (t.completed && on_complete) {
+
+        on_complete()
+
+      }
       return !t.completed
     })
 

@@ -80,7 +80,9 @@ type ClickableData = {
   rect: Rect,
   on_hover?: () => void,
   on_hover_end?: () => void,
-  on_click?: () => void
+  on_click?: () => void,
+  on_drag?: (d: DragEvent, d0?: DragEvent) => void
+  on_up?: (e: Vec2, right: boolean) => void
 }
 
 export class Clickable extends Play {
@@ -101,6 +103,10 @@ export class Clickable extends Play {
     let _hovering = false
     let self = this
     this.unbindable_input({
+      on_drag(d: DragEvent, d0?: DragEvent) {
+      },
+      on_up(e: Vec2, right: boolean) {
+      },
       on_hover(_e: EventPosition) {
         let e = _e.mul(Game.v_screen)
         let point = Rect.make(e.x - 4, e.y - 4, 8, 8)

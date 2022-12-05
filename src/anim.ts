@@ -45,16 +45,22 @@ export class Anim extends Play {
 
   _reverse: boolean = false
   _on_complete?: () => void
-  play(name: string, on_complete?: () => void, reverse: boolean = false) {
+  play_now(name: string, on_complete?: () => void, reverse: boolean = false) {
     this._on_complete = on_complete
     this._animation = name
-      this._frame = 0
+    this._frame = 0
       
       if (reverse) {
         let frames_length = this.animation?.frames.length || 0
         this._frame = frames_length - 1
       }
     this._reverse = reverse
+  }
+
+  will_play?: () => void
+  play(name: string, on_complete?: () => void, reverse: boolean = false) {
+
+    this.will_play = () => this.play_now(name, on_complete, reverse)
   }
 
   _update() {
@@ -75,6 +81,10 @@ export class Anim extends Play {
             if (this._on_complete) {
               this._on_complete()
             }
+            if (this.will_play) {
+              this.will_play()
+              this.will_play = undefined
+            }
           }
         } else {
           this._frame++;
@@ -82,6 +92,10 @@ export class Anim extends Play {
             this._frame = 0
             if (this._on_complete) {
               this._on_complete()
+            }
+            if (this.will_play) {
+              this.will_play()
+              this.will_play = undefined
             }
           }
         }
