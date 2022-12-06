@@ -1,4 +1,5 @@
 import { Solitaire, Card, Cards, SolitairePov } from 'lsolitaire'
+import { DragPov } from 'lsolitaire'
 import { SolitaireHooks } from './hooks'
 import { SolitaireGame } from './solitaire_game'
 
@@ -37,6 +38,10 @@ class SolitaireBack {
     return this.solitaire.recycle()
   }
 
+  async drop_tableu(drag: DragPov, tableu: number) {
+    return this.solitaire.drop_tableu(drag, tableu)
+  }
+
 
 }
 
@@ -72,6 +77,38 @@ abstract class Command {
 }
 
 
+export type DropTableuData = {
+  tableu: number
+}
+
+export class DropTableu extends Command {
+
+  get data() {
+    return this._data as DropTableuData
+  }
+
+  get can() {
+    return this.pov.can_drop_tableu(this.data.tableu)
+  }
+
+  cant() {
+    this.game.cant_drop_tableu(this.data.tableu)
+  }
+
+  wait() {
+    this.pov.wait_drop_tableu(this.data.tableu)
+    this.game.wait_drop_tableu(this.data.tableu)
+  }
+
+  apply_back() {
+    return this.back.drop_tableu(this.pov.dragging!, this.data.tableu)
+  }
+
+  resolve() {
+    this.pov.drop_tableu(this.data.tableu)
+    this.game.drop_tableu(this.data.tableu)
+  }
+}
 
 export type DragTableuData = {
   tableu: number,
