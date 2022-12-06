@@ -27,13 +27,18 @@ import { Text, RectView, Clickable, Background, MainMenu } from './game'
 import { SolitaireHooks } from './hooks'
 import { make_solitaire_back } from './solitaire_back'
 import { CommandType } from './solitaire_back'
-import { HitStock, Recycle } from './solitaire_back'
-  
+import { HitStock, Recycle, DragTableu } from './solitaire_back'
+import { DragSource, DragSources } from 'lsolitaire'
+
+type DragHook = (e: Vec2) => void
+type DropHook = () => void
+
 type CardData = {
   card: CardPov,
   back?: true
 }
 
+let card_origin = Vec2.make(102, 122.5)
 class Card extends Play {
 
   get data() {
@@ -42,6 +47,23 @@ class Card extends Play {
 
   get easing() {
     return !!this._tx || !!this._ty || !!this._tr
+  }
+
+  _will_lerp_t?: number
+  _will_lerp_position?: Vec2
+  lerp_position(v?: Vec2, t?: number) {
+    this._will_lerp_position = v
+    this._will_lerp_t = t
+  }
+
+  _on_drag?: DragHook
+  bind_drag(e: DragHook) {
+    this._on_drag = e
+  }
+
+  _on_drop?: DropHook
+  bind_drop(e?: DropHook) {
+    this._on_drop = e
   }
 
   _will_back!: boolean
@@ -75,25 +97,48 @@ class Card extends Play {
   _init() {
 
     this.anim = this.make(Anim, Vec2.zero, { name: 'card' })
+    this.anim.origin = card_origin
     this.anim.play('back')
 
     this._back = true
     this._will_back = this.data.back || false
 
-
     let self = this
-    this.make(Clickable, Vec2.make(20, 20), {
-      rect: Rect.make(0, 0, 160, 200),
+    this.make(Clickable, Vec2.make(16, 16).sub(this.anim.origin), {
+      rect: Rect.make(0, 0, 170, 200),
       on_hover() {
       },
       on_hover_end() {
       },
       on_click() {
+      },
+      on_drag_begin(e: Vec2) {
+        if (self._on_drag) {
+          // drag begin
+        }
+      },
+      on_drag_end() {
+        console.log('here')
+      },
+      on_drag(e: Vec2) {
+        if (self._on_drag) {
+          self._on_drag(e)
+        }
+      },
+      on_drop() {
+        if (self._on_drop) {
+          self._on_drop()
+        }
       }
     })
   }
 
   _update() {
+
+    if (this._will_lerp_position) {
+      this.position = Vec2.lerp(this.position, this._will_lerp_position, this._will_lerp_t ?? 0.5)
+    }
+
     if (this._will_back !== this._back) {
       if (!this.easing) {
         this._back = this._will_back
@@ -156,6 +201,10 @@ class Stack extends Play {
     return this.cards.length
   }
 
+  get top_card() {
+    return this.cards[this.cards.length - 1]
+  }
+
   get h() {
     return this.data.h ?? 66
   }
@@ -193,7 +242,16 @@ class Stack extends Play {
 
 }
 
+type TableuData = {
+  on_front_drag: (i: number, v: Vec2) => void,
+  on_front_drop: () => void
+}
+
 class Tableu extends Play {
+
+  get data() {
+    return this._data as TableuData
+  }
 
   get top_front_position() {
     return this.fronts.top_position
@@ -211,6 +269,23 @@ class Tableu extends Play {
   add_fronts(cards: Array<Card>) {
     this.fronts.add_cards(cards)
     cards.forEach(_ => _.ease_flip(true))
+
+    let self = this
+    this.fronts.cards.forEach((_, i) =>
+                              _.bind_drag((e: Vec2) => {
+                                self.data.on_front_drag(i, e)
+                              }))
+    this.fronts.top_card.bind_drop(() => {
+      self.data.on_front_drop()
+    })
+  }
+
+  remove_fronts(i: number) {
+    let cards = this.fronts.remove_cards(i)
+    cards.forEach(_ => {
+      _.bind_drop(undefined)
+    })
+    return cards
   }
 
   backs!: Stack
@@ -310,6 +385,42 @@ class Stock extends Play {
 
 }
 
+type DragStackData = {
+  source: DragSource
+}
+
+class DragStack extends Play {
+
+  get data() {
+    return this._data as DragStackData
+  }
+
+  _cards!: Array<Card>
+  set cards(cards: Array<Card>) {
+    this._cards = cards
+    this._cards.forEach(_ => _.send_front())
+  }
+
+  drag(v: Vec2) {
+    this._cards.forEach((_, i) => {
+      let t = 0.5 + i / this._cards.length
+      _.lerp_position(v, t)
+    })
+  }
+
+  cancel() {
+    let cards = this._cards.splice(0)
+
+    cards.forEach(_=> _.lerp_position())
+    return cards
+  }
+
+  _init() {
+    this._cards = []
+  }
+
+}
+
 type SolitaireGameData = {
 }
 
@@ -324,8 +435,34 @@ export class SolitaireGame extends Play {
 
   cards!: Cards
 
+  dragging?: DragStack
+
 
   _init() {
+
+    let self = this
+    this.make(Clickable, Vec2.zero, {
+      rect: Rect.make(0, 0, 0, 0),
+      on_up() {
+        if (self.dragging) {
+
+
+          let cards = self.dragging.cancel()
+          let [source, n, i] = self.dragging.data.source
+
+          switch (source) {
+            case 'tableu':
+              self.tableus[n].add_fronts(cards)
+            break
+          }
+
+
+          self.dragging.dispose()
+          self.dragging = undefined
+        }
+      }
+    })
+
 
     this.cards = this.make(Cards, Vec2.zero, {})
 
@@ -339,12 +476,11 @@ export class SolitaireGame extends Play {
   }
 
   _init_pov(pov: SolitairePov, cmd: (ctor: CommandType, data?: any) => void) {
-
     let stock_x = 40,
       stock_y = 200
 
     let self = this
-    let stock = this.make(Stock, Vec2.make(stock_x, stock_y), { 
+    let stock = this.make(Stock, Vec2.make(stock_x, stock_y).add(card_origin), { 
       on_hit() {
         cmd(HitStock)
       },
@@ -363,8 +499,18 @@ export class SolitaireGame extends Play {
 
 
     let tableus = pov.tableus.map((tableu, i) => 
-                this.make(Tableu, Vec2.make(tableu_x + tableu_w * i, tableu_y), {
-                  tableu
+                this.make(Tableu, Vec2.make(tableu_x + tableu_w * i, tableu_y).add(card_origin), {
+                  tableu,
+                  on_front_drag(e: number, v: Vec2) {
+                    if (self.dragging) {
+                      self.dragging.drag(v)
+                    } else {
+                      cmd(DragTableu, { tableu: i, i: e })
+                    }
+                  },
+                  on_front_drop() {
+                    console.log('drop', i)
+                  }
                 }))
     this.tableus = tableus
 
@@ -401,6 +547,16 @@ export class SolitaireGame extends Play {
 
   recycle() {
     this.stock.recycle()
+  }
+
+  cant_drag_tableu(tableu: number, i: number) {
+  }
+
+  drag_tableu(tableu: number, i: number) {
+    let cards = this.tableus[tableu].remove_fronts(i)
+
+    this.dragging = this.make(DragStack, Vec2.zero, { source: DragSources.tableu(tableu, i) })
+    this.dragging.cards = cards
   }
 
 }

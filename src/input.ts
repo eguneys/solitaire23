@@ -10,6 +10,7 @@ export type DragEvent = {
 }
 
 export type Hooks = {
+  priority?: number,
   on_hover?: (e: EventPosition) => boolean,
   on_up?: (e: EventPosition, right: boolean) => boolean,
   on_click?: (e: EventPosition, right: boolean) => boolean,
@@ -31,20 +32,29 @@ class Input {
     }
   }
 
+  get hooks() {
+    return this._hooks
+    //return this._hooks.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
+  }
+
+  _sort_hooks() {
+    this._hooks.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
+  }
+
   _on_hover(e: EventPosition) {
-    this._hooks.find(_ => _.on_hover?.(e))
+    this.hooks.find(_ => _.on_hover?.(e))
   }
   _on_up(e: EventPosition, right: boolean) {
-    this._hooks.find(_ => _.on_up?.(e, right))
+    this.hooks.find(_ => _.on_up?.(e, right))
   }
   _on_click(e: EventPosition, right: boolean) {
-    this._hooks.find(_ => _.on_click?.(e, right))
+    this.hooks.find(_ => _.on_click?.(e, right))
   }
   _on_drag(d: DragEvent, d0?: DragEvent) {
-    this._hooks.find(_ => _.on_drag?.(d, d0))
+    this.hooks.find(_ => _.on_drag?.(d, d0))
   }
   _on_context() {
-    this._hooks.find(_ => _.on_context?.())
+    this.hooks.find(_ => _.on_context?.())
   }
 
 

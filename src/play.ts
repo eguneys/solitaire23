@@ -18,11 +18,19 @@ export const link_color = Color.hex(0x4ab2cd)
 
 export abstract class Play {
 
+  static next_render_order: number = 0
+
+  _render_order: number = 0
+
   visible: boolean = true
   g_position!: Vec2
   position!: Vec2
   rotation!: number
   origin: Vec2 = Vec2.zero
+
+  get input_priority() {
+    return this._render_order
+  }
 
   get font() {
     return Content.sp_font
@@ -38,8 +46,14 @@ export abstract class Play {
     return this
   }
 
-  unbindable_input(hooks: Hooks) {
-    this._disposes.push(Input.register(hooks))
+  unbindable_input(hooks: Hooks, priority: number = 0) {
+    let self = this
+    this._disposes.push(Input.register({
+      get priority() {
+        return self.input_priority
+      },
+      ...hooks
+    }))
   }
 
   _disposes!: Array<() => void>
@@ -134,6 +148,7 @@ export abstract class Play {
 
   draw(batch: Batch) {
     if (this.visible) {
+      this._render_order = Play.next_render_order++
       this._draw(batch)
     }
   }

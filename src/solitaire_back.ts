@@ -73,6 +73,37 @@ abstract class Command {
 
 
 
+export type DragTableuData = {
+  tableu: number,
+  i: number
+} 
+
+export class DragTableu extends Command {
+
+  get data() {
+    return this._data as DragTableuData
+  }
+
+  get can() {
+    return this.pov.can_drag_tableu(this.data.tableu, this.data.i)
+  }
+
+  cant() {
+    this.game.cant_drag_tableu(this.data.tableu, this.data.i)
+  }
+
+  wait() {}
+
+  apply_back() {
+    return Promise.resolve()
+  }
+
+  resolve() {
+    this.pov.drag_tableu(this.data.tableu, this.data.i)
+    this.game.drag_tableu(this.data.tableu, this.data.i)
+  }
+}
+
 
 export class Recycle extends Command {
 

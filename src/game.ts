@@ -81,7 +81,10 @@ type ClickableData = {
   on_hover?: () => void,
   on_hover_end?: () => void,
   on_click?: () => void,
-  on_drag?: (d: DragEvent, d0?: DragEvent) => void
+  on_drag_begin?: (e: Vec2) => void,
+  on_drag_end?: (e: Vec2) => void,
+  on_drag?: (e: Vec2) => void,
+  on_drop?: (e: Vec2) => void,
   on_up?: (e: Vec2, right: boolean) => void
 }
 
@@ -100,12 +103,50 @@ export class Clickable extends Play {
   }
 
   _init() {
+    let _dragging = false
     let _hovering = false
     let self = this
     this.unbindable_input({
       on_drag(d: DragEvent, d0?: DragEvent) {
+        if (_dragging) {
+
+          let m = d.m!.mul(Game.v_screen)
+          self.data.on_drag?.(m)
+          return true
+        }
+        if (d.m && (!d0 || !d0.m)) {
+          let e = d.e.mul(Game.v_screen)
+          let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
+          let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
+          if (rect.overlaps(point)) {
+            _dragging = true
+            self.data.on_drag_begin?.(e)
+            return true
+          } else {
+            return false
+          }
+        }
+        return false
       },
       on_up(e: Vec2, right: boolean) {
+
+        let _e = e.mul(Game.v_screen)
+
+        if (_dragging) {
+          _dragging = false
+          self.data.on_drag_end?.(_e)
+        } 
+
+        self.data.on_up?.(e, right)
+
+        let point = Rect.make(_e.x - 4, _e.y - 4, 8, 8)
+        let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
+        if (rect.overlaps(point)) {
+          self.data.on_drop?.(_e)
+        }
+
+
+        return false
       },
       on_hover(_e: EventPosition) {
         let e = _e.mul(Game.v_screen)
@@ -1289,10 +1330,12 @@ export default class Game extends Play {
   }
 
   _update() {
+    Input._sort_hooks()
   }
 
   _draw() {
 
+    Play.next_render_order = 0
     App.backbuffer.clear(Color.black)
 
     this._draw_children(batch)
