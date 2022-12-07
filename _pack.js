@@ -3,7 +3,7 @@ import { ImageSave, Rect, Packer, aseprite } from 'aset'
 
 export default async function pack() {
 
-  let packer = new Packer()
+  let packer = new Packer(4)
 
   let sprites = []
 
@@ -48,10 +48,10 @@ function ase_files(folder) {
         .map(file => new Promise(_resolve => {
           fs.readFile([folder, file].join('/'), (err, data) => {
             if (err) {
-              console.error(err)
-              return
+              throw err
             }
             let name = file.split('.')[0]
+            console.log(name, data.length)
             _resolve({ name, ase: aseprite(data)})
           })
         }))).then(resolve)

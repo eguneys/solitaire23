@@ -20,8 +20,8 @@ export function rnd_h(rng: RNG = random) {
   return rng() * 2 - 1
 }
 
-export function arr_random<A>(arr: Array<A>) {
-  return arr[int_random(arr.length)]
+export function arr_random<A>(arr: Array<A>, rng: RNG = random) {
+  return arr[int_random(arr.length, rng)]
 }
 
 export const v_random = (rng: RNG = random) => Vec2.make(rng(), rng())

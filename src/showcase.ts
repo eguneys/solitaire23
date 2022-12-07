@@ -15,49 +15,525 @@ import { bg1, link_color, Play, PlayType} from './play'
 
 import { ticks } from './shared'
 import { Anim } from './anim'
+import { Tween } from './tween'
 
 import { Text, RectView, Clickable, Background, MainMenu } from './game'
+import { Button } from './ui'
+import { Suit, Cards as OCards, CardPov, hidden_card } from 'lsolitaire'
+
+import { arr_random } from './util'
+
+type DragHook = (e: Vec2) => void
+type DropHook = () => void
+
+const suit_long: Record<Suit, string> = { 's': 'spades', 'd': 'diamonds', 'h': 'hearts', 'c': 'clubs' }
 
 export class Card extends Play {
 
+  _card!: CardPov
 
+  get waiting() {
+    return this._card === hidden_card
+  }
+
+  set card(card: CardPov) {
+    this._card = card
+    this.suit.play_now(suit_long[card[0] as Suit])
+    if (this.waiting) {
+      if (this.anim._animation === 'idle') {
+        this.anim.play('wait')
+        this.suit.visible = false
+      }
+    } else {
+      if (this.anim._animation === 'wait') {
+        this.anim.play('idle')
+        this.suit.visible = true
+      }
+    }
+  }
+
+
+  get easing() {
+    return !!this._tx || !!this._ty || !!this._tr
+  }
+
+  _will_lerp_t?: number
+  _will_lerp_position?: Vec2
+  lerp_position(v?: Vec2, t?: number) {
+
+    if (this._tx) {
+      this.cancel(this._tx)
+      this._tx = undefined
+    }
+    if (this._ty) {
+      this.cancel(this._ty)
+      this._ty = undefined
+    }
+
+    this._will_lerp_position = v
+    this._will_lerp_t = t
+    this._target_speed = (1-(t || 0.5)) * 0.1
+  }
+
+  _dragging!: boolean
+
+  get drag_decay() {
+    return this._drag_decay
+  }
+  _drag_decay: Vec2 = Vec2.zero
+  _on_drag?: DragHook
+  bind_drag(e: DragHook) {
+    this._on_drag = e
+  }
+
+  _on_drop?: DropHook
+  bind_drop(e?: DropHook) {
+    this._on_drop = e
+  }
+
+  _on_hover?: [DropHook, DropHook]
+  bind_hover(e?: [DropHook, DropHook]) {
+    this._on_hover = e
+  }
+
+
+  facing!: number
+
+  suit!: Anim
   anim!: Anim
-  fx!: Array<Anim>
+  shadow!: Anim
+
+  _will_hover!: boolean
+  _will_hover_end!: boolean
+  _will_flip_back!: boolean
+  _will_flip_front!: boolean
+  
+  lerp_hover_y!: number
+
+  _tr?: Tween
+  _tx?: Tween
+  _ty?: Tween
+
+  _target_speed!: number
+  _speed!: number
+
+  _hover_time?: number
+  get hover_time() {
+    return this._hover_time ?? 0
+  }
+
+  ease_position(v: Vec2, duration: number = ticks.half) {
+    if (v.equals(this.position)) {
+      return
+    }
+    this._target_speed = (duration / ticks.half) * 0.2
+    this._tx = this.tween_single(this._tx, [this.position.x, v.x], (v) => {
+      this.position.x = v
+    }, duration, 0, () => { 
+      this._tx = undefined 
+      this._target_speed = 0
+    })
+
+    this._ty = this.tween_single(this._ty, [this.position.y, v.y], (v) => {
+      this.position.y = v
+    }, duration, 0, () => { this._ty = undefined })
+  }
+
+
 
   _init() {
     
+    this._card = hidden_card
+
+    this.shadow = this.make(Anim, Vec2.make(0, 0), { name: 'card' })
+    this.shadow.origin = Vec2.make(88, 120)
+    this.shadow.play_now('shadow')
+
     this.anim = this.make(Anim, Vec2.make(0, 0), { name: 'card' })
     this.anim.origin = Vec2.make(88, 120)
+    this.facing = -1
+    this.anim.play_now('back_idle')
+
+    this.suit = this.make(Anim, Vec2.make(-44, -86), { name: 'suit' })
+    this.suit.origin = Vec2.make(32, 32)
+    this.suit.play_now('spades')
+    this.suit.scale = Vec2.make(0.6, 0.6)
+    this.suit.visible = false
+
+    this._will_hover = false
+    this._will_hover_end = false
+
+    this._will_flip_back = false
+    this._will_flip_front = false
+
+    this.lerp_hover_y = 0
+
+    this._dragging = false
+
+    this._speed = 0
+    this._target_speed = 0
+
+    let self = this
+    this.make(Clickable, Vec2.make(16, 16).sub(this.anim.origin), {
+      rect: Rect.make(0, 0, 170, 210),
+      on_hover() {
+        if (self._on_hover) {
+          self._on_hover[0]()
+        }
+        if (self._on_drag) {
+          self._will_hover = true
+          return true
+        }
+        return false
+      },
+      on_hover_end() {
+        if (self._on_hover) {
+          self._on_hover[1]()
+        }
+        self._will_hover_end = true
+      },
+      on_drag_begin(e: Vec2) {
+        if (self._on_drag) {
+          self._dragging = true
+          self._drag_decay = e.sub(self.position)
+        }
+      },
+      on_drag_end() {
+        self._dragging = false
+      },
+      on_drag(e: Vec2) {
+        if (self._on_drag) {
+          self._on_drag(e)
+        }
+      },
+      on_drop() {
+        if (self._on_drop) {
+          self._on_drop()
+        }
+      }
+    })
+
   }
 
-  hover() {
-    this.anim.play('hover')
+  _update() {
+
+    this._speed = lerp(this._speed, this._target_speed, 0.2)
+    let n = ease(Math.abs(Math.sin(Time.seconds * 3))) * this._speed
+    this.scale = Vec2.make(1-n, 1+n)
+
+
+    if (this._will_lerp_position) {
+      this.position = Vec2.lerp(this.position, this._will_lerp_position, this._will_lerp_t ?? 0.5)
+    }
+
+
+
+    this.anim.position.y = lerp(this.anim.position.y, this.lerp_hover_y, 0.2)
+    this.suit.position.y = lerp(this.suit.position.y, this.lerp_hover_y - 86, 0.16)
+
+    if (this._will_hover) {
+      this._will_hover = false
+      this.anim.play(this.facing === 1 ? 'hover' : 'back_hover')
+      this.lerp_hover_y = -6
+      this._hover_time = 0
+    }
+    if (this._will_hover_end) {
+      this._will_hover_end = false
+      let idle_wait = this.waiting ? 'wait': 'idle'
+      this.anim.play(this.facing === 1 ? idle_wait: 'back_idle')
+      this.lerp_hover_y = 0
+      this._hover_time = undefined
+    }
+
+    if (this._hover_time !== undefined && this._hover_time >= 0) {
+      this._hover_time += Time.delta
+    }
+
+    if (this._will_flip_back) {
+      if (!this.easing) {
+        this._will_flip_back = false
+        this.shadow.visible = false
+        this.suit.visible = false
+        this.anim.play('flip', () => {
+          this.facing = -1
+          this.anim.play('back_idle')
+          this.shadow.visible = true
+        })
+      }
+    }
+
+    if (this._will_flip_front) {
+      if (!this.easing) {
+        this._will_flip_front = false
+        this.shadow.visible = false
+        this.suit.visible = false
+        this.anim.play('back_flip', () => {
+          this.facing = 1
+          this.anim.play(this.waiting ? 'wait' : 'idle')
+          this.shadow.visible = true
+
+          if (!this.waiting) {
+            this.suit.visible = true
+          }
+        })
+      }
+    }
   }
 
-  hover_end() {
-    this.anim.play('idle')
+  flip_back() {
+    this._will_flip_back = this.facing !== -1
   }
 
-
-  click() {
-    this.routine(this._click())
-  }
-
-  *_click() {
-    this.anim.play('click')
-    yield * this.wait_for(ticks.half)
-    this.anim.play('idle')
+  flip_front() {
+    this._will_flip_front = this.facing !== 1
   }
 
 }
 
 
+
+
+export class Cards extends Play {
+
+  frees!: Array<Card>
+  used!: Array<Card>
+
+
+  borrow() {
+    let card = this.frees.shift()!
+    this.used.push(card)
+
+    card.visible = true
+    return card
+  }
+
+  release(card: Card) {
+    card.visible = false
+    this.used.splice(this.used.indexOf(card), 1)
+    this.frees.push(card)
+  }
+
+
+  _init() {
+    this.frees = OCards.deck.map(card => {
+      let _ = this.make(Card, Vec2.zero, {})
+      _.visible = false
+      return _
+    })
+
+    this.used = []
+  }
+}
+
+
+type StackData = {
+  h?: number
+}
+class Stack extends Play {
+
+  get data() {
+    return this._data as StackData
+  }
+
+  get length() {
+    return this.cards.length
+  }
+
+  get top_card() {
+    return this.cards[this.cards.length - 1]
+  }
+
+  get h() {
+    let n = 55 * (1 - this.cards.length / 50)
+    return this.data.h ?? n
+  }
+
+  get top_position() {
+    return this.position.add(Vec2.make(0, this.cards.length * this.h))
+  }
+
+  add_cards(cards: Array<Card>) {
+    this.cards.push(...cards)
+    this._reposition()
+  }
+
+  remove_cards(n: number) {
+    let cards = this.cards.splice(-n)
+    this._reposition()
+    return cards
+  }
+
+  _i_gap?: number
+  set i_gap(_: number | undefined) {
+    if (this._i_gap === _) {
+      return
+    }
+    this._i_gap = _
+    this._reposition()
+  }
+
+  _reposition() {
+    this.cards.forEach((card, i) => {
+      let i_gap = (this._i_gap !== undefined && i > this._i_gap) ? i + 0.5 : i
+      if (card.easing) {
+        return
+      }
+      card.ease_position(this.p_position.add(Vec2.make(0, i_gap * this.h)))
+    })
+  }
+
+  ease_position(v: Vec2) {
+    this.position = v
+    this._reposition()
+  }
+
+  cards!: Array<Card>
+
+
+  _init() {
+    this.cards = []
+  }
+
+
+}
+
+function sigmoid(x: number) {
+  return 1 / (1 + Math.exp(-x));
+}
+
+class DragStack extends Play {
+
+  get waiting() {
+    return this._waiting
+  }
+  _waiting: boolean = false
+  wait_drop() {
+    this._waiting = true
+  }
+
+  _cards!: Array<Card>
+  set cards(cards: Array<Card>) {
+    this._cards = cards
+    this._cards.forEach(_ => _.send_front())
+  }
+
+  get drag_decay() {
+    return this._cards[0].drag_decay
+  }
+
+  get h() {
+    return 50
+  }
+
+  drag(v: Vec2) {
+    this._cards.forEach((_, i) => {
+      let _v = v.add(Vec2.make(0, this.h * i).sub(this.drag_decay))
+      let t = 1-sigmoid((i/this._cards.length) * 2)
+      _.lerp_position(_v, t)
+    })
+  }
+
+  release() {
+    let cards = this._cards.splice(0)
+
+    cards.forEach(_=> _.lerp_position())
+    return cards
+  }
+
+  _init() {
+    this._cards = []
+  }
+
+}
+
+
+
+type TableuData = {
+  on_front_drag: (i: number, v: Vec2) => void,
+  on_front_drop: () => void
+}
+
+export class Tableu extends Play {
+
+  get data() {
+    return this._data as TableuData
+  }
+
+  get top_front_position() {
+    return this.fronts.top_position
+  }
+
+  get top_back_position() {
+    return this.backs.top_position
+  }
+
+  add_backs(cards: Array<Card>) {
+    cards.forEach(_ => _.flip_back())
+    this.backs.add_cards(cards)
+    this.fronts.ease_position(this.top_back_position)
+  }
+
+  add_fronts(cards: Array<Card>) {
+
+    this.fronts.add_cards(cards)
+    cards.forEach(_ => _.flip_front())
+
+    let self = this
+    let l = this.fronts.cards.length
+    this.fronts.cards.forEach((_, i) => {
+      _.bind_drop(undefined)
+      _.bind_drag((e: Vec2) => {
+        self.data.on_front_drag(l - i, e)
+      })
+    })
+    this.fronts.top_card.bind_drop(() => {
+      self.data.on_front_drop()
+    })
+  }
+
+  remove_fronts(i: number) {
+    let cards = this.fronts.remove_cards(i)
+    cards.forEach(_ => {
+      _.bind_drop(undefined)
+    })
+    let self = this
+    let l = this.fronts.cards.length
+    this.fronts.cards.forEach((_, i) => {
+      _.bind_drop(undefined)
+      _.bind_drag((e: Vec2) => {
+        self.data.on_front_drag(l - i, e)
+      })
+    })
+    this.fronts.top_card?.bind_drop(() => {
+      self.data.on_front_drop()
+    })
+    return cards
+  }
+
+  backs!: Stack
+  fronts!: Stack
+
+  _init() {
+    this.backs = this.make(Stack, Vec2.make(0, 0), { h: 33 })
+    this.fronts = this.make(Stack, Vec2.make(0, 0), {})
+  }
+
+
+  _update() {
+    let i = this.fronts.cards.findIndex(_ => _.hover_time > ticks.half)
+    if (i !== -1) {
+      this.fronts.i_gap = i
+    } else {
+      this.fronts.i_gap = undefined
+    }
+  }
+}
+
+
 export class CardShowcase extends Play {
 
-  hovering!: Card
-  clicking!: Card
-
-  i_clicking = 0
+  dragging?: DragStack
+  card!: Card
 
   _init() {
 
@@ -67,39 +543,159 @@ export class CardShowcase extends Play {
 
     let c_off = Vec2.make(100, 200)
     let w = 300
-    this.make(Text, Vec2.make(200, 200), {
-      text: 'idle'
+    let h = 100
+    this.make(Text, Vec2.make(100, 200), {
+      text: 'front'
     })
-    _ = this.make(Card, Vec2.make(200, 200).add(c_off), {})
+    
 
-    this.make(Text, Vec2.make(200 + w, 200), {
-      text: 'hover'
+    this.make(Text, Vec2.make(100, 200 + h), {
+      text: ' - wait'
     })
-    this.hovering = this.make(Card, Vec2.make(200 + w, 200).add(c_off), {})
-    this.routine(this._hover())
 
-    this.make(Text, Vec2.make(200 + w * 2, 200), {
-      text: 'click'
+    this.make(Text, Vec2.make(100, 200 + h * 2), {
+      text: ' - idle'
     })
-    this.clicking = this.make(Card, Vec2.make(200 + w * 2, 200).add(c_off), {})
-    this.routine(this._click())
 
-  }
+    this.make(Text, Vec2.make(100, 200 + h * 3), {
+      text: ' - hover'
+    })
 
-  *_hover(): Generator<void> {
-    this.hovering.hover()
-    yield * this.wait_for(ticks.half)
-    this.hovering.hover_end()
-    yield * this.wait_for(ticks.seconds)
-    yield * this._hover()
-  }
+    this.make(Text, Vec2.make(100, 200 + h * 4), {
+      text: ' - click'
+    })
 
-  *_click(): Generator<void> {
-    this.clicking.hover()
-    yield * this.wait_for(ticks.sixth)
-    this.clicking.click()
-    yield * this.wait_for(ticks.seconds)
-    yield *  this._click()
+    this.make(Text, Vec2.make(100, 200 + h * 5), {
+      text: ' - flip'
+    })
+
+    this.make(Text, Vec2.make(450, 200), {
+      text: 'back'
+    })
+
+    this.make(Text, Vec2.make(450, 200 + h * 2), {
+      text: ' - idle'
+    })
+
+    this.make(Text, Vec2.make(450, 200 + h * 3), {
+      text: ' - hover'
+    })
+
+    this.make(Text, Vec2.make(450, 200 + h * 4), {
+      text: ' - click'
+    })
+
+    this.make(Text, Vec2.make(450, 200 + h * 5), {
+      text: ' - flip'
+    })
+
+    let self = this
+    this.make(Button, Vec2.make(400, 200 + h * 7), {
+      text: 'flip',
+      w: 200,
+      h: 100,
+      on_click() {
+        if (self.card.facing === 1) {
+          self.card.flip_back()
+        } else {
+          self.card.flip_front()
+        }
+      }
+    })
+
+    this.make(Button, Vec2.make(80, 200 + h * 7), {
+      text: 'set card',
+      w: 300,
+      h: 100,
+      on_click() {
+        if (self.card._card === hidden_card) {
+          self.card.card = arr_random(OCards.deck)
+        } else {
+          self.card.card = hidden_card
+        }
+      }
+    })
+
+    let cards = this.make(Cards, Vec2.make(500, 0), {})
+
+
+    this.card = cards.borrow()
+    this.card.ease_position(Vec2.make(500, 500))
+    this.card.bind_drag(() => {})
+
+    this.make(Clickable, Vec2.make(0, 0), {
+      rect: Rect.make(0, 0, 0, 0),
+      on_up() {
+        if (self.dragging) {
+          let cards = self.dragging.release()
+          tableu3.add_fronts(cards)
+          self.dragging = undefined
+        }
+
+      }
+    })
+
+    let tableu = this.make(Tableu, Vec2.make(1000, 500), {
+    
+      on_front_drag(i: number, v: Vec2) {
+        if (self.dragging) {
+          self.dragging.drag(v)
+        } else {
+          let cards = tableu.remove_fronts(i)
+          self.dragging = self.make(DragStack, Vec2.zero, {})
+          self.dragging.cards = cards
+        }
+      },
+      on_front_drop() {
+      }
+    })
+    tableu.add_backs([...Array(5).keys()].map(() => cards.borrow()))
+    tableu.add_fronts([...Array(12).keys()].map(() => cards.borrow()))
+    tableu.fronts.cards.forEach(_ => _.card = arr_random(OCards.deck))
+
+
+
+
+    let tableu2 = this.make(Tableu, Vec2.make(1000 - 200, 500), {
+    
+      on_front_drag(i: number, v: Vec2) {
+        if (self.dragging) {
+          self.dragging.drag(v)
+        } else {
+          let cards = tableu2.remove_fronts(i)
+          self.dragging = self.make(DragStack, Vec2.zero, {})
+          self.dragging.cards = cards
+        }
+      },
+      on_front_drop() {
+      }
+    })
+    tableu2.add_backs([...Array(5).keys()].map(() => cards.borrow()))
+    tableu2.add_fronts([...Array(5).keys()].map(() => cards.borrow()))
+    tableu2.fronts.cards.forEach(_ => _.card = arr_random(OCards.deck))
+
+
+    let tableu3 = this.make(Tableu, Vec2.make(1000 + 200, 500), {
+    
+      on_front_drag(i: number, v: Vec2) {
+        if (self.dragging) {
+          self.dragging.drag(v)
+        } else {
+          let cards = tableu3.remove_fronts(i)
+          self.dragging = self.make(DragStack, Vec2.zero, {})
+          self.dragging.cards = cards
+        }
+      },
+      on_front_drop() {
+      }
+    })
+    tableu3.add_backs([...Array(5).keys()].map(() => cards.borrow()))
+    tableu3.add_fronts([...Array(2).keys()].map(() => cards.borrow()))
+    tableu3.fronts.cards.forEach(_ => _.card = arr_random(OCards.deck))
+
+
+
+
   }
 
   _update() {

@@ -11,7 +11,7 @@ const ase_content = () => {
 
 
 chokidar.watch(['./content/sprites/*.ase'
-], { ignoreInitial: true })
+], { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 500 } })
   .on('all', (event, path) => ase_content())
 
 ase_content()

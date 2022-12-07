@@ -79,6 +79,22 @@
     - Selected
     - Cant select
     - Stack Top view
+
+back
+  idle
+  hover
+  click
+  flip
+  drag
+
+front
+  idle
+  wait
+  hover
+  click
+  flip
+  drag
+
   
   - Stock
     - Deck Stack
@@ -99,3 +115,6 @@
   - card to foundation highlight anim
  
 ~ several design settings
+
+
+

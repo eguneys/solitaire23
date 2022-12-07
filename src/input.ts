@@ -12,8 +12,10 @@ export type DragEvent = {
 export type Hooks = {
   priority?: number,
   on_hover?: (e: EventPosition) => boolean,
+  on_hover_clear?: () => void,
   on_up?: (e: EventPosition, right: boolean, m?: Vec2) => boolean,
   on_click?: (e: EventPosition, right: boolean) => boolean,
+  on_click_begin?: (e: EventPosition, right: boolean) => boolean,
   on_drag?: (d: DragEvent, d0?: DragEvent) => boolean,
   on_context?: () => boolean
 }
@@ -42,13 +44,23 @@ class Input {
   }
 
   _on_hover(e: EventPosition) {
-    this.hooks.find(_ => _.on_hover?.(e))
+    let hooks = this.hooks
+
+    let j = hooks.findIndex(_ => _.on_hover?.(e))
+    if (j !== -1) {
+      for (let i = j + 1; i < this.hooks.length; i++) {
+        hooks[i].on_hover_clear?.()
+      }
+    }
   }
   _on_up(e: EventPosition, right: boolean, m?: EventPosition) {
     this.hooks.find(_ => _.on_up?.(e, right, m))
   }
   _on_click(e: EventPosition, right: boolean) {
     this.hooks.find(_ => _.on_click?.(e, right))
+  }
+  _on_click_begin(e: EventPosition, right: boolean) {
+    this.hooks.find(_ => _.on_click_begin?.(e, right))
   }
   _on_drag(d: DragEvent, d0?: DragEvent) {
     this.hooks.find(_ => _.on_drag?.(d, d0))
@@ -108,6 +120,8 @@ class Input {
             self._on_update = undefined
           }
         }
+
+        self._on_click_begin(e, _right)
       },
       _onDragMove(_e) {
         let e = map_e(_e)

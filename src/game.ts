@@ -80,8 +80,9 @@ class MainTitle extends Play {
 type ClickableData = {
   debug?: true,
   rect: Rect,
-  on_hover?: () => void,
+  on_hover?: () => boolean,
   on_hover_end?: () => void,
+  on_click_begin?: () => void,
   on_click?: () => void,
   on_drag_begin?: (e: Vec2) => void,
   on_drag_end?: (e: Vec2) => void,
@@ -109,6 +110,18 @@ export class Clickable extends Play {
     let _hovering = false
     let self = this
     this.unbindable_input({
+      on_click_begin(_e: EventPosition, right: boolean) {
+        if (right) {
+          return false
+        }
+        let e = _e.mul(Game.v_screen)
+        let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
+        let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
+        if (rect.overlaps(point)) {
+          return self.data.on_click_begin?.() || false
+        }
+        return false
+      },
       on_drag(d: DragEvent, d0?: DragEvent) {
         if (d._right) {
           return false
@@ -166,7 +179,7 @@ export class Clickable extends Play {
         if (rect.overlaps(point)) {
           if (!_hovering) {
             _hovering = true
-            self.data.on_hover?.()
+             return self.data.on_hover?.() || false
           }
         } else {
           if (_hovering) {
@@ -174,7 +187,13 @@ export class Clickable extends Play {
             self.data.on_hover_end?.()
           }
         }
-        return false
+        return _hovering
+      },
+      on_hover_clear() {
+        if (_hovering) {
+          _hovering = false
+          self.data.on_hover_end?.()
+        }
       },
       on_click(_e: EventPosition, right: boolean) {
         let e = _e.mul(Game.v_screen)
