@@ -111,8 +111,12 @@ class Card extends Play {
     this.make(Clickable, Vec2.make(16, 16).sub(this.anim.origin), {
       rect: Rect.make(0, 0, 170, 200),
       on_hover() {
+        if (self._on_drag) {
+          self.anim.play('hover')
+        }
       },
       on_hover_end() {
+        self.anim.play(self._back ? 'back' : 'idle')
       },
       on_click() {
       },

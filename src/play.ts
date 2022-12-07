@@ -27,6 +27,23 @@ export abstract class Play {
   position!: Vec2
   rotation!: number
   origin: Vec2 = Vec2.zero
+  scale: Vec2 = Vec2.one
+
+
+  coroutines: Array<Coroutine> = []
+
+  routine(coroutine: Coroutine) {
+    this.coroutines.push(coroutine)
+  }
+
+  *wait_for(ms: number) {
+    let n = 0
+    while(n < ms) {
+      n+= Time.delta
+      yield
+    }
+  }
+
 
   get input_priority() {
     return this._render_order
@@ -130,6 +147,12 @@ export abstract class Play {
   }
 
   update() {
+
+    this.coroutines = this.coroutines.filter(_ => {
+      let res = _.next()
+      return !res.done
+    })
+
     this.objects.forEach(_ => _.update())
 
     this._tweens = this._tweens.filter(([t, f, on_complete]) => {
@@ -171,7 +194,7 @@ export abstract class Play {
   _init() {}
   _update() {}
   _draw(batch: Batch) {
-    batch.push_matrix(Mat3x2.create_transform(this.position, this.origin, Vec2.one, this.rotation))
+    batch.push_matrix(Mat3x2.create_transform(this.position, this.origin, this.scale, this.rotation))
     this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
     this._draw_children(batch)
     batch.pop_matrix()
@@ -181,3 +204,5 @@ export abstract class Play {
 
 
 export type PlayType<T extends Play> = { new(...args: any[]): T}
+
+export type Coroutine = Generator<void>

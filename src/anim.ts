@@ -110,7 +110,7 @@ export class Anim extends Play {
       return
     }
 
-    batch.push_matrix(Mat3x2.create_transform(this.position, this.origin, Vec2.one, this.rotation))
+    batch.push_matrix(Mat3x2.create_transform(this.position, this.origin, this.scale, this.rotation))
     this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
     batch.stex(this.subtexture, Vec2.zero, Color.white)
     batch.pop_matrix()

@@ -17,6 +17,8 @@ import { Anim } from './anim'
 
 import { SolitairePlay } from './solitaire'
 
+import { CardShowcase } from './showcase'
+
 type RectData = {
   w: number,
   h: number,
@@ -1266,7 +1268,8 @@ class SceneTransition extends Play {
     this.target = Target.create(Game.width, Game.height)
     this.mask_target = Target.create(Game.width, Game.height)
 
-    this.current = this._make(SolitairePlay, Vec2.zero, {})
+    this.current = this._make(CardShowcase, Vec2.zero, {})
+    // this.current = this._make(SolitairePlay, Vec2.zero, {})
     // this.current = this._make(MainMenu, Vec2.zero, {})
     //this.current = this._make(Statistics, Vec2.zero, {})
 
