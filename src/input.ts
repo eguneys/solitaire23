@@ -12,7 +12,7 @@ export type DragEvent = {
 export type Hooks = {
   priority?: number,
   on_hover?: (e: EventPosition) => boolean,
-  on_up?: (e: EventPosition, right: boolean) => boolean,
+  on_up?: (e: EventPosition, right: boolean, m?: Vec2) => boolean,
   on_click?: (e: EventPosition, right: boolean) => boolean,
   on_drag?: (d: DragEvent, d0?: DragEvent) => boolean,
   on_context?: () => boolean
@@ -44,8 +44,8 @@ class Input {
   _on_hover(e: EventPosition) {
     this.hooks.find(_ => _.on_hover?.(e))
   }
-  _on_up(e: EventPosition, right: boolean) {
-    this.hooks.find(_ => _.on_up?.(e, right))
+  _on_up(e: EventPosition, right: boolean, m?: EventPosition) {
+    this.hooks.find(_ => _.on_up?.(e, right, m))
   }
   _on_click(e: EventPosition, right: boolean) {
     this.hooks.find(_ => _.on_click?.(e, right))
@@ -89,6 +89,9 @@ class Input {
 
     Mouse.init({
       _onDragStart(_e, _right) {
+        if (_right) {
+          return
+        }
 
         let e = map_e(_e)
 
@@ -120,9 +123,11 @@ class Input {
         if (!_drag.m) {
           self._on_click(_drag.e, _drag._right)
         }
-        self._on_up(_drag.m || _drag.e, _drag._right)
+        self._on_up(_drag.e, _drag._right, _drag.m)
         self._on_update = undefined
         _drag = undefined
+      },
+      _onContextMenu() {
       }
     }, element)
 

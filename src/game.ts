@@ -108,8 +108,10 @@ export class Clickable extends Play {
     let self = this
     this.unbindable_input({
       on_drag(d: DragEvent, d0?: DragEvent) {
+        if (d._right) {
+          return false
+        }
         if (_dragging) {
-
           let m = d.m!.mul(Game.v_screen)
           self.data.on_drag?.(m)
           return true
@@ -128,7 +130,10 @@ export class Clickable extends Play {
         }
         return false
       },
-      on_up(e: Vec2, right: boolean) {
+      on_up(e: Vec2, right: boolean, m?: Vec2) {
+        if (right) {
+          return false
+        }
 
         let _e = e.mul(Game.v_screen)
 
@@ -139,10 +144,14 @@ export class Clickable extends Play {
 
         self.data.on_up?.(e, right)
 
-        let point = Rect.make(_e.x - 4, _e.y - 4, 8, 8)
-        let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
-        if (rect.overlaps(point)) {
-          self.data.on_drop?.(_e)
+        if (m) {
+
+          let _m = m.mul(Game.v_screen)
+          let point = Rect.make(_m.x - 4, _m.y - 4, 8, 8)
+          let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
+          if (rect.overlaps(point)) {
+            self.data.on_drop?.(m)
+          }
         }
 
 
@@ -1330,7 +1339,6 @@ export default class Game extends Play {
   }
 
   _update() {
-    Input._sort_hooks()
   }
 
   _draw() {
@@ -1344,6 +1352,8 @@ export default class Game extends Play {
         batch.render(App.backbuffer)
         batch.clear()
     }
+
+    Input._sort_hooks()
   }
 
 }

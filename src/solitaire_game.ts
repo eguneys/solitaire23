@@ -122,7 +122,6 @@ class Card extends Play {
         }
       },
       on_drag_end() {
-        console.log('here')
       },
       on_drag(e: Vec2) {
         if (self._on_drag) {
@@ -271,15 +270,18 @@ class Tableu extends Play {
   }
 
   add_fronts(cards: Array<Card>) {
+
     this.fronts.add_cards(cards)
     cards.forEach(_ => _.ease_flip(true))
 
     let self = this
     let l = this.fronts.cards.length
-    this.fronts.cards.forEach((_, i) =>
-                              _.bind_drag((e: Vec2) => {
-                                self.data.on_front_drag(l - i, e)
-                              }))
+    this.fronts.cards.forEach((_, i) => {
+      _.bind_drop(undefined)
+      _.bind_drag((e: Vec2) => {
+        self.data.on_front_drag(l - i, e)
+      })
+    })
     this.fronts.top_card.bind_drop(() => {
       self.data.on_front_drop()
     })
@@ -289,6 +291,10 @@ class Tableu extends Play {
     let cards = this.fronts.remove_cards(i)
     cards.forEach(_ => {
       _.bind_drop(undefined)
+    })
+    let self = this
+    this.fronts.top_card?.bind_drop(() => {
+      self.data.on_front_drop()
     })
     return cards
   }
@@ -370,7 +376,7 @@ class Stock extends Play {
     this.recycle_anim.visible = false
 
     let self = this
-    this.make(Clickable, Vec2.make(16, 16), {
+    this.make(Clickable, Vec2.make(16, 16).sub(card_origin), {
       rect: Rect.make(0, 0, 170, 230),
       on_click() {
         if (self.stock.length > 0) {
@@ -390,11 +396,9 @@ class Stock extends Play {
 
 }
 
-function sigmoid(x) {
+function sigmoid(x: number) {
   return 1 / (1 + Math.exp(-x));
 }
-
-//console.log([...Array(20).keys()].map(sigmoid))
 
 type DragStackData = {
   source: DragSource
@@ -468,30 +472,33 @@ export class SolitaireGame extends Play {
 
   _init() {
 
-    let self = this
-    this.make(Clickable, Vec2.zero, {
-      rect: Rect.make(0, 0, 0, 0),
-      on_up() {
-        if (self.dragging && !self.dragging.waiting) {
-          let cards = self.dragging.release()
-          let [source, n, i] = self.dragging.data.source
-
-          switch (source) {
-            case 'tableu':
-              self.tableus[n].add_fronts(cards)
-            break
-          }
-
-          self.dragging.dispose()
-          self.dragging = undefined
-        }
-      }
-    })
-
-
-    this.cards = this.make(Cards, Vec2.zero, {})
-
     make_solitaire_back(this).then(({pov, cmd}) => {
+
+      let self = this
+      let c = this.make(Clickable, Vec2.zero, {
+        rect: Rect.make(0, 0, 0, 0),
+        on_up() {
+          if (self.dragging && !self.dragging.waiting) {
+
+            pov.cancel_drag()
+
+            let cards = self.dragging.release()
+            let [source, n, i] = self.dragging.data.source
+
+            switch (source) {
+              case 'tableu':
+                self.tableus[n].add_fronts(cards)
+              break
+            }
+
+            self.dragging.dispose()
+            self.dragging = undefined
+          }
+        }
+      })
+
+      this.cards = this.make(Cards, Vec2.zero, {})
+
       this._init_pov(pov, cmd)
     })
   }
@@ -556,7 +563,6 @@ export class SolitaireGame extends Play {
   }
 
   cant_hit_stock() {
-    console.log('here')
   }
 
   hit_stock(cards: Array<OCard>) {

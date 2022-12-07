@@ -383,7 +383,7 @@ class InfiniteScrollableContent extends Play {
         }
         return true
       },
-      on_up(e: Vec2, right: boolean) {
+      on_up(e: Vec2, right: boolean, m?: Vec2) {
         self.scroll_y += self.scroll_off
         self.scroll_off = 0
 
