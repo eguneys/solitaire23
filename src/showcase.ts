@@ -21,14 +21,14 @@ import { Text, RectView, Clickable, Background, MainMenu } from './game'
 import { Button } from './ui'
 import { Suit, Cards as OCards, CardPov, hidden_card } from 'lsolitaire'
 
-import { arr_random } from './util'
+import { v_random, arr_random } from './util'
 
 type DragHook = (e: Vec2) => void
 type DropHook = () => void
 
 const suit_long: Record<Suit, string> = { 's': 'spades', 'd': 'diamonds', 'h': 'hearts', 'c': 'clubs' }
 
-export class Card extends Play {
+export class SuitRankDecoration extends Play {
 
   _card!: CardPov
 
@@ -36,18 +36,90 @@ export class Card extends Play {
     return this._card === hidden_card
   }
 
+
   set card(card: CardPov) {
     this._card = card
     this.suit.play_now(suit_long[card[0] as Suit])
+    this.rsuit.play_now(suit_long[card[0] as Suit])
+    this.decsuit.forEach(_ => _.play_now(suit_long[card[0] as Suit]))
+
+  }
+
+  rsuit!: Anim
+  suit!: Anim
+  decsuit!: Array<Anim>
+
+
+  _init() {
+
+    let v_next = Vec2.make(40, 40);
+    this.decsuit = [...Array(3).keys()].map(() => 
+                             (v_next = v_next
+                              .add(v_random()
+                                   .mul(Vec2.make(4, 30))
+                                   .add(Vec2.make(0, 30)))))
+    .map(v => {
+      let _ = this.make(Anim, v, { name: 'suit'})
+
+      _.origin = Vec2.make(32, 32)
+      _.play_now('spades')
+      _.scale = Vec2.one.scale(v_random().x * 0.2).add(Vec2.make(0.2, 0.2))
+      return _
+    })
+    let more_suits = [...Array(2).keys()]
+    .map(() =>
+         (v_next = v_next
+          .sub(v_random()
+               .mul(Vec2.make(24, 30))
+               .add(Vec2.make(0, 40)))))
+    .map(v => {
+      v.x += 120
+      let _ = this.make(Anim, v, { name: 'suit'})
+
+      _.origin = Vec2.make(32, 32)
+      _.play_now('spades')
+      _.scale = Vec2.one.scale(v_random().x * 0.2).add(Vec2.make(0.2, 0.2))
+      return _
+    })
+    this.decsuit.push(...more_suits)
+
+
+    this.suit = this.make(Anim, Vec2.make(30, 32), { name: 'suit' })
+    this.suit.origin = Vec2.make(32, 32)
+    this.suit.play_now('spades')
+    this.suit.scale = Vec2.make(0.6, 0.6)
+
+
+    this.rsuit = this.make(Anim, Vec2.make(150, 210), { name: 'suit' })
+    this.rsuit.origin = Vec2.make(32, 32)
+    this.rsuit.rotation = Math.PI
+    this.rsuit.play_now('spades')
+    this.rsuit.scale = Vec2.make(0.6, 0.6)
+
+
+  }
+}
+
+export class Card extends Play {
+
+  decoration!: SuitRankDecoration
+
+
+  get waiting() {
+    return this.decoration.waiting
+  }
+
+  set card(card: CardPov) {
+    this.decoration.card = card
     if (this.waiting) {
       if (this.anim._animation === 'idle') {
         this.anim.play('wait')
-        this.suit.visible = false
+        this.decoration.visible = false
       }
     } else {
       if (this.anim._animation === 'wait') {
         this.anim.play('idle')
-        this.suit.visible = true
+        this.decoration.visible = true
       }
     }
   }
@@ -102,7 +174,6 @@ export class Card extends Play {
 
   facing!: number
 
-  suit!: Anim
   anim!: Anim
   shadow!: Anim
 
@@ -161,7 +232,6 @@ export class Card extends Play {
 
   _init() {
     
-    this._card = hidden_card
 
     this.shadow = this._make(Anim, Vec2.make(0, 0), { name: 'card' })
     this.shadow.origin = Vec2.make(88, 120)
@@ -172,11 +242,9 @@ export class Card extends Play {
     this.facing = -1
     this.anim.play_now('back_idle')
 
-    this.suit = this.make(Anim, Vec2.make(-44, -86), { name: 'suit' })
-    this.suit.origin = Vec2.make(32, 32)
-    this.suit.play_now('spades')
-    this.suit.scale = Vec2.make(0.6, 0.6)
-    this.suit.visible = false
+    this.decoration = this.make(SuitRankDecoration, Vec2.make(-80, -120), {})
+    this.decoration.visible = false
+    this.decoration.card = hidden_card
 
     this._will_hover = false
     this._will_hover_end = false
@@ -269,7 +337,7 @@ export class Card extends Play {
 
 
     this.anim.position.y = lerp(this.anim.position.y, this.lerp_hover_y, 0.2)
-    this.suit.position.y = lerp(this.suit.position.y, this.lerp_hover_y - 86, 0.16)
+    this.decoration.position.y = lerp(this.decoration.position.y, this.lerp_hover_y - 120, 0.16)
 
     if (this._will_hover) {
       this._will_hover = false
@@ -300,7 +368,7 @@ export class Card extends Play {
       if (!this.easing) {
         this._will_flip_back = false
         this.shadow.visible = false
-        this.suit.visible = false
+        this.decoration.visible = false
         this.anim.play('flip', () => {
           this.facing = -1
           this.anim.play('back_idle')
@@ -313,14 +381,14 @@ export class Card extends Play {
       if (!this.easing) {
         this._will_flip_front = false
         this.shadow.visible = false
-        this.suit.visible = false
+        this.decoration.visible = false
         this.anim.play('back_flip', () => {
           this.facing = 1
           this.anim.play(this.waiting ? 'wait' : 'idle')
           this.shadow.visible = true
 
           if (!this.waiting) {
-            this.suit.visible = true
+            this.decoration.visible = true
           }
         })
       }
@@ -685,7 +753,7 @@ export class CardShowcase extends Play {
       w: 300,
       h: 100,
       on_click() {
-        if (self.card._card === hidden_card) {
+        if (self.card.decoration._card === hidden_card) {
           self.card.card = arr_random(OCards.deck)
         } else {
           self.card.card = hidden_card
