@@ -22,6 +22,12 @@ export class Anim extends Play {
     return Content.find_sprite(this.data.name)
   }
 
+
+  alpha: number = 255
+  get alpha_color() {
+    return new Color(this.alpha, this.alpha, this.alpha, this.alpha)
+  }
+
   _animation: string = 'idle'
   get animation() {
     return this.sprite.get(this._animation)
@@ -49,11 +55,11 @@ export class Anim extends Play {
     this._on_complete = on_complete
     this._animation = name
     this._frame = 0
-      
-      if (reverse) {
-        let frames_length = this.animation?.frames.length || 0
-        this._frame = frames_length - 1
-      }
+
+    if (reverse) {
+      let frames_length = this.animation?.frames.length || 0
+      this._frame = frames_length - 1
+    }
     this._reverse = reverse
   }
 
@@ -112,7 +118,7 @@ export class Anim extends Play {
 
     batch.push_matrix(Mat3x2.create_transform(this.position, this.origin, this.scale, this.rotation))
     this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
-    batch.stex(this.subtexture, Vec2.zero, Color.white)
+    batch.stex(this.subtexture, Vec2.zero, this.alpha_color)
     batch.pop_matrix()
     
   }

@@ -8,7 +8,7 @@ import Input, { Hooks, EventPosition, DragEvent } from './input'
 import { howtos } from './howtos'
 import { Transition, transition } from './transition'
 
-import { rmap, ease, lerp, appr } from './lerp'
+import { rmap, ease_quad, ease, lerp, appr } from './lerp'
 import { InfiniteScrollableList } from './scrollable'
 
 import { bg1, link_color, Play, PlayType} from './play'
@@ -52,6 +52,9 @@ export class Card extends Play {
     }
   }
 
+  get flipping() {
+    return this.anim._animation === 'flip' || this.anim._animation === 'back_flip'
+  }
 
   get easing() {
     return !!this._tx || !!this._ty || !!this._tr
@@ -72,7 +75,7 @@ export class Card extends Play {
 
     this._will_lerp_position = v
     this._will_lerp_t = t
-    this._target_speed = (1-(t || 0.5)) * 0.1
+    this._target_speed = (1-(t || 0.5)) * 0.2
   }
 
   _dragging!: boolean
@@ -110,6 +113,8 @@ export class Card extends Play {
   
   lerp_hover_y!: number
 
+  _lerp_drag_shadow?: number
+
   _tr?: Tween
   _tx?: Tween
   _ty?: Tween
@@ -139,13 +144,26 @@ export class Card extends Play {
     }, duration, 0, () => { this._ty = undefined })
   }
 
+  set_dragging() {
+    this._lerp_drag_shadow = 0
+    this._dragging = true
+  }
 
+  unset_dragging() {
+    this._dragging = false
+  }
+
+
+  _after_ease?: () => void
+  after_ease(fn: () => void) {
+    this._after_ease = fn
+  }
 
   _init() {
     
     this._card = hidden_card
 
-    this.shadow = this.make(Anim, Vec2.make(0, 0), { name: 'card' })
+    this.shadow = this._make(Anim, Vec2.make(0, 0), { name: 'card' })
     this.shadow.origin = Vec2.make(88, 120)
     this.shadow.play_now('shadow')
 
@@ -194,6 +212,7 @@ export class Card extends Play {
       },
       on_drag_begin(e: Vec2) {
         if (self._on_drag) {
+          self._lerp_drag_shadow = 0
           self._dragging = true
           self._drag_decay = e.sub(self.position)
         }
@@ -218,7 +237,7 @@ export class Card extends Play {
   _update() {
 
     this._speed = lerp(this._speed, this._target_speed, 0.2)
-    let n = ease(Math.abs(Math.sin(Time.seconds * 3))) * this._speed
+    let n = ease_quad(Math.abs(Math.sin(Time.seconds * 3))) * this._speed
     this.scale = Vec2.make(1-n, 1+n)
 
 
@@ -226,6 +245,27 @@ export class Card extends Play {
       this.position = Vec2.lerp(this.position, this._will_lerp_position, this._will_lerp_t ?? 0.5)
     }
 
+    if (this._lerp_drag_shadow !== undefined) {
+      if (this._dragging) {
+        this._lerp_drag_shadow = lerp(this._lerp_drag_shadow, 1, 0.2)
+      } else {
+        this._lerp_drag_shadow = lerp(this._lerp_drag_shadow, 0, 0.2)
+        if (this._lerp_drag_shadow < 0.001) {
+          this._lerp_drag_shadow = undefined
+        }
+      }
+    }
+
+    if (this._lerp_drag_shadow !== undefined) {
+      let t = this._lerp_drag_shadow * 0.05
+      this.shadow.scale = Vec2.one.add(Vec2.one.scale(t))
+      this.shadow.alpha = (1.0 - this._lerp_drag_shadow) * 100 + 155
+    }
+
+    if (this._after_ease && !this.easing) {
+      this._after_ease()
+      this._after_ease = undefined
+    }
 
 
     this.anim.position.y = lerp(this.anim.position.y, this.lerp_hover_y, 0.2)
@@ -233,19 +273,26 @@ export class Card extends Play {
 
     if (this._will_hover) {
       this._will_hover = false
-      this.anim.play(this.facing === 1 ? 'hover' : 'back_hover')
+      if (!this.easing && !this.flipping && this._will_flip_back && this._will_flip_front) {
+        this.anim.play(this.facing === 1 ? 'hover' : 'back_hover')
+      }
       this.lerp_hover_y = -6
       this._hover_time = 0
     }
     if (this._will_hover_end) {
       this._will_hover_end = false
       let idle_wait = this.waiting ? 'wait': 'idle'
-      this.anim.play(this.facing === 1 ? idle_wait: 'back_idle')
+      if (!this.easing && !this.flipping && this._will_flip_back && this._will_flip_front) {
+        this.anim.play(this.facing === 1 ? idle_wait: 'back_idle')
+      }
       this.lerp_hover_y = 0
       this._hover_time = undefined
     }
 
     if (this._hover_time !== undefined && this._hover_time >= 0) {
+      if (this.easing) {
+        this._hover_time = 0
+      }
       this._hover_time += Time.delta
     }
 
@@ -288,6 +335,16 @@ export class Card extends Play {
     this._will_flip_front = this.facing !== 1
   }
 
+  _draw_shadow(batch: Batch) {
+    batch.push_matrix(Mat3x2.create_transform(this.position, this.origin, this.scale, this.rotation))
+    this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
+
+
+    this.shadow.draw(batch)
+
+    batch.pop_matrix()
+  }
+
 }
 
 
@@ -313,6 +370,10 @@ export class Cards extends Play {
     this.frees.push(card)
   }
 
+  _shadow_group?: Array<Card>
+  set shadow_group(cards: Array<Card> | undefined) {
+    this._shadow_group = cards
+  }
 
   _init() {
     this.frees = OCards.deck.map(card => {
@@ -322,6 +383,23 @@ export class Cards extends Play {
     })
 
     this.used = []
+  }
+
+  _draw(batch: Batch) {
+
+    batch.push_matrix(Mat3x2.create_transform(this.position, this.origin, this.scale, this.rotation))
+    this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
+
+    this._draw_children(batch)
+
+    this._shadow_group?.forEach(_ => {
+      _._draw_shadow(batch)
+    })
+    this._shadow_group?.forEach(_ => {
+      _.draw(batch)
+    })
+
+    batch.pop_matrix()
   }
 }
 
@@ -375,9 +453,6 @@ class Stack extends Play {
   _reposition() {
     this.cards.forEach((card, i) => {
       let i_gap = (this._i_gap !== undefined && i > this._i_gap) ? i + 0.5 : i
-      if (card.easing) {
-        return
-      }
       card.ease_position(this.p_position.add(Vec2.make(0, i_gap * this.h)))
     })
   }
@@ -413,8 +488,9 @@ class DragStack extends Play {
 
   _cards!: Array<Card>
   set cards(cards: Array<Card>) {
-    this._cards = cards
+    this._cards = cards.slice(0)
     this._cards.forEach(_ => _.send_front())
+    this._cards.forEach(_ => _.set_dragging())
   }
 
   get drag_decay() {
@@ -437,6 +513,7 @@ class DragStack extends Play {
     let cards = this._cards.splice(0)
 
     cards.forEach(_=> _.lerp_position())
+    cards.forEach(_ => _.unset_dragging())
     return cards
   }
 
@@ -520,7 +597,7 @@ export class Tableu extends Play {
 
 
   _update() {
-    let i = this.fronts.cards.findIndex(_ => _.hover_time > ticks.half)
+    let i = this.fronts.cards.findIndex(_ => _.hover_time > ticks.thirds)
     if (i !== -1) {
       this.fronts.i_gap = i
     } else {
@@ -627,9 +704,12 @@ export class CardShowcase extends Play {
       rect: Rect.make(0, 0, 0, 0),
       on_up() {
         if (self.dragging) {
-          let cards = self.dragging.release()
-          tableu3.add_fronts(cards)
+          let _cards = self.dragging.release()
+          tableu3.add_fronts(_cards)
           self.dragging = undefined
+          _cards[0].after_ease(() => {
+            cards.shadow_group = undefined
+          })
         }
 
       }
@@ -641,9 +721,10 @@ export class CardShowcase extends Play {
         if (self.dragging) {
           self.dragging.drag(v)
         } else {
-          let cards = tableu.remove_fronts(i)
+          let _cards = tableu.remove_fronts(i)
           self.dragging = self.make(DragStack, Vec2.zero, {})
-          self.dragging.cards = cards
+          self.dragging.cards = _cards
+          cards.shadow_group = _cards
         }
       },
       on_front_drop() {
@@ -662,9 +743,10 @@ export class CardShowcase extends Play {
         if (self.dragging) {
           self.dragging.drag(v)
         } else {
-          let cards = tableu2.remove_fronts(i)
+          let _cards = tableu2.remove_fronts(i)
           self.dragging = self.make(DragStack, Vec2.zero, {})
-          self.dragging.cards = cards
+          self.dragging.cards = _cards
+          cards.shadow_group = _cards
         }
       },
       on_front_drop() {
@@ -681,9 +763,10 @@ export class CardShowcase extends Play {
         if (self.dragging) {
           self.dragging.drag(v)
         } else {
-          let cards = tableu3.remove_fronts(i)
+          let _cards = tableu3.remove_fronts(i)
           self.dragging = self.make(DragStack, Vec2.zero, {})
-          self.dragging.cards = cards
+          self.dragging.cards = _cards
+          cards.shadow_group = _cards
         }
       },
       on_front_drop() {

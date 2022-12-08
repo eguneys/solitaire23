@@ -19,3 +19,6 @@ export function ease(t: number) {
 }
 
 
+export function ease_quad(t: number) {
+  return t * t
+}
