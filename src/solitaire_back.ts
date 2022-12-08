@@ -2,6 +2,7 @@ import { Solitaire, Card, Cards, SolitairePov } from 'lsolitaire'
 import { DragPov } from 'lsolitaire'
 import { SolitaireHooks } from './hooks'
 import { SolitaireGame } from './solitaire_game'
+import { FlipFront } from 'lsolitaire'
 
 export async function make_solitaire_back(game: SolitaireGame) {
 
@@ -104,7 +105,12 @@ export class DropTableu extends Command {
     return this.back.drop_tableu(this.pov.dragging!, this.data.tableu)
   }
 
-  resolve() {
+  resolve(flip_front?: FlipFront) {
+    if (flip_front) {
+      let { drag_tableu, front } = flip_front
+      this.pov.flip_front(drag_tableu, front)
+      this.game.flip_front(drag_tableu, front)
+    }
     this.pov.drop_tableu(this.data.tableu)
     this.game.drop_tableu(this.data.tableu)
   }

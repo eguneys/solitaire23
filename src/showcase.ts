@@ -19,7 +19,7 @@ import { Tween } from './tween'
 
 import { Text, RectView, Clickable, Background, MainMenu } from './game'
 import { Button } from './ui'
-import { Suit, Cards as OCards, CardPov, hidden_card } from 'lsolitaire'
+import { Suit, Cards as OCards, Card as OCard, CardPov, hidden_card } from 'lsolitaire'
 
 import { v_random, arr_random } from './util'
 
@@ -475,7 +475,7 @@ export class Cards extends Play {
 type StackData = {
   h?: number
 }
-class Stack extends Play {
+export class Stack extends Play {
 
   get data() {
     return this._data as StackData
@@ -544,7 +544,7 @@ function sigmoid(x: number) {
   return 1 / (1 + Math.exp(-x));
 }
 
-class DragStack extends Play {
+export class DragStack extends Play {
 
   get waiting() {
     return this._waiting
@@ -653,6 +653,23 @@ export class Tableu extends Play {
       self.data.on_front_drop()
     })
     return cards
+  }
+
+  flip_front(front: OCard) {
+    let [card] = this.backs.remove_cards(1)
+    card.card = front
+    card.flip_front()
+    this.fronts.ease_position(this.top_back_position)
+    this.fronts.top_card?.bind_drop(undefined)
+    this.fronts.add_cards([card])
+    let self = this
+    this.fronts.top_card.bind_drag((e: Vec2) => {
+      self.data.on_front_drag(0, e)
+    })
+    this.fronts.top_card.bind_drop(() => {
+      self.data.on_front_drop()
+
+    })
   }
 
   backs!: Stack
