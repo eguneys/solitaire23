@@ -11,10 +11,11 @@ export default async function pack() {
     ase_files(_)
     .then(_ => _.map(({name, ase}) => {
 
+      let frames = ase.frames.map(frame => ({duration: frame.duration}))
       let packs = ase.frames.map(frame => packer.add(frame.image))
       let { tags } = ase
 
-      sprites.push({ name, packs, tags })
+      sprites.push({ name, packs, tags, frames })
     }))))
 
 
@@ -22,10 +23,10 @@ export default async function pack() {
 
   packer.pack()
 
-  sprites = sprites.map(({ name, packs, tags }) => ({
+  sprites = sprites.map(({ name, packs, tags, frames }) => ({
     name,
     tags,
-    packs: packs.map(_ => ({ frame: _.frame, packed: _.packed }))
+    packs: packs.map((_,i) => ({ frame: _.frame, packed: _.packed, meta: frames[i] }))
   }))
 
 
@@ -51,7 +52,6 @@ function ase_files(folder) {
               throw err
             }
             let name = file.split('.')[0]
-            console.log(name, data.length)
             _resolve({ name, ase: aseprite(data)})
           })
         }))).then(resolve)

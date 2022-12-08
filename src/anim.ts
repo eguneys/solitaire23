@@ -49,6 +49,7 @@ export class Anim extends Play {
     return this.frame?.duration
   }
 
+  _loop: boolean = false
   _reverse: boolean = false
   _on_complete?: () => void
   play_now(name: string, on_complete?: () => void, reverse: boolean = false) {
@@ -69,6 +70,11 @@ export class Anim extends Play {
     this.will_play = () => this.play_now(name, on_complete, reverse)
   }
 
+  play_o(name: string, options: { loop?: boolean }) {
+    this._loop = options.loop ?? false
+    this.play_now(name)
+  }
+
   _update() {
 
     const frames_length = this.animation?.frames.length
@@ -83,7 +89,11 @@ export class Anim extends Play {
         if (this._reverse) {
           this._frame--;
           if (this._frame < 0) {
-            this._frame = frames_length - 1
+            if (this._loop) {
+              this._frame = frames_length - 1
+            } else {
+              this._frame = 0
+            }
             if (this._on_complete) {
               this._on_complete()
             }
@@ -95,7 +105,11 @@ export class Anim extends Play {
         } else {
           this._frame++;
           if (this._frame >= frames_length) {
-            this._frame = 0
+            if (this._loop) {
+              this._frame = 0
+            } else {
+              this._frame = frames_length - 1
+            }
             if (this._on_complete) {
               this._on_complete()
             }

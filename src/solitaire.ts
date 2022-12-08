@@ -28,6 +28,8 @@ import { Tween } from './tween'
 
 import { SolitaireGame } from './solitaire_game'
 
+import { Button } from './ui'
+
 type CardData = {
   card?: OCard,
   back?: true
@@ -633,6 +635,14 @@ export class SolitairePlay extends Play {
     this.make(Background, Vec2.zero, undefined)
 
     let game = this.make(SolitaireGame, Vec2.make(0, 0), {})
+
+    this.make(Button, Vec2.make(160, 1000), {
+      text: 'undo',
+      on_click() {
+        console.log('undo')
+      }
+    })
+
 
     let overlay = this.make(RectView, Vec2.zero, {
       w: 1920,

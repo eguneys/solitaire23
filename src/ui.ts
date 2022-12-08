@@ -20,8 +20,6 @@ import { Text, RectView, Clickable, Background, MainMenu } from './game'
 
 type ButtonData = {
   text: string,
-  w: number,
-  h: number,
   on_click: () => void
 }
 
@@ -33,20 +31,30 @@ export class Button extends Play {
 
   _init() {
 
-    let r = this.make(RectView, Vec2.make(0, 0), {
-      w: this.data.w,
-      h: this.data.h,
-      color: Color.black
+    let bg = this.make(Anim, Vec2.make(0, 0), {
+      name: 'button_bg'
     })
+    bg.origin = Vec2.make(366, 200).scale(1/2)
 
-    let _ = this.make(Text, Vec2.make(this.data.w / 2, 0), {
+    let _ = this.make(Text, Vec2.make(0, -32), {
       text: this.data.text,
       center: true
     })
 
     let self = this
-    this.make(Clickable, Vec2.make(4, 4), {
-      rect: Rect.make(0, 0, this.data.w - 8, this.data.h - 8),
+    this.make(Clickable, Vec2.make(-366 + 80, -200 + 80).scale(1/2), {
+      rect: Rect.make(0, 0, 366 - 80, 200 - 80),
+      on_hover() {
+        bg.play_o('hover', { loop: false })
+      },
+      on_hover_end() {
+        bg.play('hover', () => {
+          bg.play('idle')
+        }, true)
+      },
+      on_click_begin() {
+        bg.play_o('click', { loop: false })
+      },
       on_click() {
         self.data.on_click()
       }

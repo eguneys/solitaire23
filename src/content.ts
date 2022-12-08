@@ -47,11 +47,11 @@ class Content {
       let animations: Array<Animation> = []
 
       tags.forEach(tag => {
-        let duration = 100 / 1000
         let frames = []
         for (let i = tag.from; i <= tag.to; i++) {
 
           let _ = packs[i]
+          let duration = _.meta.duration/ 1000
           let framerect = Rect.make(_.frame.x, _.frame.y, _.frame.w, _.frame.h)
           let subrect = Rect.make(_.packed.x, _.packed.y, _.packed.w, _.packed.h)
 
