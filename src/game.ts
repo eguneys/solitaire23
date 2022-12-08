@@ -19,6 +19,8 @@ import { SolitairePlay } from './solitaire'
 
 import { CardShowcase } from './showcase'
 
+import Sound from './sound'
+
 type RectData = {
   w: number,
   h: number,
@@ -1354,6 +1356,10 @@ export default class Game extends Play {
     batch.default_sampler = TextureSampler.make(TextureFilter.Linear)
 
     this.objects = []
+
+    Sound.load().then(() => {
+      console.log(Sound)
+    })
 
     Content.load().then(() => {
       scene_transition = this.make(SceneTransition, Vec2.zero, {})

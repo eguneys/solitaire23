@@ -33,6 +33,8 @@ import { DragSource, DragSources } from 'lsolitaire'
 
 import { Card, Stack, DragStack, Tableu, Cards } from './showcase'
 
+import Sound from './sound'
+
 
 const reverse_forEach = <A>(a: Array<A>, f: (_: A) => void) => {
   for (let i = a.length - 1; i >= 0; i--) {
@@ -165,6 +167,10 @@ export class SolitaireGame extends Play {
 
             self.dragging.dispose()
             self.dragging = undefined
+            Sound.play('ding')
+            cards[0].after_ease(() => {
+              self.cards.shadow_group = undefined
+            })
           }
         }
       })
@@ -261,9 +267,12 @@ export class SolitaireGame extends Play {
   drag_tableu(tableu: number, i: number) {
     let cards = this.tableus[tableu].remove_fronts(i)
 
+    Sound.play('drag')
     this.dragging = this.make(DragStack, Vec2.zero, {})
     this.drag_source =  DragSources.tableu(tableu, i)
     this.dragging.cards = cards
+
+    this.cards.shadow_group = cards
   }
 
   flip_front(tableu: number, front: OCard) {
@@ -274,6 +283,9 @@ export class SolitaireGame extends Play {
     let cards = this.dragging!.release()
     this.dragging = undefined
     this.tableus[tableu].add_fronts(cards)
+    cards[0].after_ease(() => {
+      this.cards.shadow_group = undefined
+    })
   }
 
   wait_drop_tableu(tableu: number) {
