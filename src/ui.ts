@@ -35,10 +35,12 @@ export class Button extends Play {
       name: 'button_bg'
     })
     bg.origin = Vec2.make(366, 200).scale(1/2)
+    bg.scale = Vec2.make(0.6, 0.6)
 
-    let _ = this.make(Text, Vec2.make(0, -32), {
+    let _ = this.make(Text, Vec2.make(0, -25), {
       text: this.data.text,
-      center: true
+      center: true,
+      size: 96
     })
 
     let self = this

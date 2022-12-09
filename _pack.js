@@ -12,7 +12,7 @@ export default async function pack() {
     .then(_ => _.map(({name, ase}) => {
 
       let frames = ase.frames.map(frame => ({duration: frame.duration}))
-      let packs = ase.frames.map(frame => packer.add(frame.image))
+      let packs =  ase.frames.map(frame => packer.add(frame.image))
       let { tags } = ase
 
       sprites.push({ name, packs, tags, frames })

@@ -656,13 +656,11 @@ export class SolitairePlay extends Play {
     let game = this.make(SolitaireGame, Vec2.make(0, 0), {})
 
     this.make(Button, Vec2.make(130, 1000), {
-      text: 'kçışhpöü',
+      text: 'pçtkfstkçışhpöü',
       on_click() {
         console.log('undo')
       }
     })
-
-    console.log('çışöüİğ'.split('').map(_ => [_, _.charCodeAt(0)]))
 
     this.make(ScoreBoard, Vec2.make(130, 800), {
     })

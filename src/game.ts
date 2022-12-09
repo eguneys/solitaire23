@@ -14,10 +14,12 @@ import { InfiniteScrollableList } from './scrollable'
 import { bg1, link_color, Play, PlayType} from './play'
 
 import { Anim } from './anim'
+import { Tween } from './tween'
 
 import { SolitairePlay } from './solitaire'
 
 import { CardShowcase } from './showcase'
+import { ticks } from './shared'
 
 import Sound from './sound'
 
@@ -33,8 +35,20 @@ export class RectView extends Play {
     return this._data as RectData
   }
 
+  _color!: Color
+  set color(c: Color) {
+    this._color = c
+  }
+  get color() {
+    return this._color
+  }
+
+  _init() {
+    this.color = this.data.color ?? Color.white
+  }
+
   _draw(batch: Batch) {
-    batch.rect(Rect.make(this.position.x, this.position.y, this.data.w, this.data.h), this.data.color || Color.white)
+    batch.rect(Rect.make(this.position.x, this.position.y, this.data.w, this.data.h), this.color)
   }
 }
 
@@ -66,7 +80,7 @@ class MainTitle extends Play {
 
     let _ = this.make(Text, Vec2.make(30, 16), {
       text: 'lisotaire',
-      size: 160
+      size: 128
     })
 
     this.make(Text, Vec2.make(30 + _.width, 16), {
@@ -80,15 +94,16 @@ class MainTitle extends Play {
 
 
 type ClickableData = {
+  abs?: true,
   debug?: true,
   rect: Rect,
   on_hover?: () => boolean,
   on_hover_end?: () => void,
-  on_click_begin?: () => void,
-  on_click?: () => void,
-  on_drag_begin?: (e: Vec2) => void,
+  on_click_begin?: () => boolean,
+  on_click?: () => boolean,
+  on_drag_begin?: (e: Vec2) => boolean,
   on_drag_end?: (e: Vec2) => void,
-  on_drag?: (e: Vec2) => void,
+  on_drag?: (e: Vec2) => boolean,
   on_drop?: (e: Vec2) => void,
   on_up?: (e: Vec2, right: boolean) => void
 }
@@ -107,6 +122,21 @@ export class Clickable extends Play {
     return this.data.rect.h
   }
 
+  get _rect() {
+    return this.data.abs ? 
+      Rect.make(this.position.x, this.position.y, this.width, this.height)
+      : Rect.make(this.g_position.x, this.g_position.y, this.width, this.height)
+  }
+
+  get rect() {
+    let { p_scissor } = this
+    if (p_scissor) {
+      return this._rect.overlaps_rect(p_scissor)
+    } else {
+      return this._rect
+    }
+  }
+
   _init() {
     let _dragging = false
     let _hovering = false
@@ -116,9 +146,12 @@ export class Clickable extends Play {
         if (right) {
           return false
         }
+        if (!self.p_visible) {
+          return false
+        }
         let e = _e.mul(Game.v_screen)
         let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
-        let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
+        let rect = self.rect
         if (rect.overlaps(point)) {
           return self.data.on_click_begin?.() || false
         }
@@ -128,19 +161,21 @@ export class Clickable extends Play {
         if (d._right) {
           return false
         }
+        if (!self.p_visible) {
+          return false
+        }
         if (_dragging) {
           let m = d.m!.mul(Game.v_screen)
-          self.data.on_drag?.(m)
-          return true
+          return self.data.on_drag?.(m) || false
         }
+
         if (d.m && (!d0 || !d0.m)) {
           let e = d.e.mul(Game.v_screen)
           let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
-          let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
+          let rect = self.rect
           if (rect.overlaps(point)) {
             _dragging = true
-            self.data.on_drag_begin?.(e)
-            return true
+            return self.data.on_drag_begin?.(e) || false
           } else {
             return false
           }
@@ -151,7 +186,9 @@ export class Clickable extends Play {
         if (right) {
           return false
         }
-
+        if (!self.p_visible) {
+          return false
+        }
         let _e = e.mul(Game.v_screen)
 
         if (_dragging) {
@@ -165,7 +202,7 @@ export class Clickable extends Play {
 
           let _m = m.mul(Game.v_screen)
           let point = Rect.make(_m.x - 4, _m.y - 4, 8, 8)
-          let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
+          let rect = self.rect
           if (rect.overlaps(point)) {
             self.data.on_drop?.(m)
           }
@@ -175,9 +212,15 @@ export class Clickable extends Play {
         return false
       },
       on_hover(_e: EventPosition) {
+        if (!self.data.on_hover) {
+          return false
+        }
+        if (!self.p_visible) {
+          return false
+        }
         let e = _e.mul(Game.v_screen)
         let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
-        let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
+        let rect = self.rect
         if (rect.overlaps(point)) {
           if (!_hovering) {
             _hovering = true
@@ -192,18 +235,27 @@ export class Clickable extends Play {
         return _hovering
       },
       on_hover_clear() {
+        if (!self.data.on_hover_end) {
+          return false
+        }
         if (_hovering) {
           _hovering = false
-          self.data.on_hover_end?.()
+          return self.data.on_hover_end?.()
         }
+        if (!self.p_visible) {
+          return false
+        }
+        return false
       },
       on_click(_e: EventPosition, right: boolean) {
+        if (!self.p_visible) {
+          return false
+        }
         let e = _e.mul(Game.v_screen)
         let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
-        let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
+        let rect = self.rect
         if (rect.overlaps(point)) {
-          self.data.on_click?.()
-          return true
+          return self.data.on_click?.()
         }
         return false
       }
@@ -356,6 +408,7 @@ class MainCard extends Play {
       rotation: - Math.PI * 0.5,
       color: Color.black
     })
+
 
     this.make(Clickable, Vec2.make(60, 64), {
       rect: Rect.make(0, 0, 300, 420),
@@ -960,6 +1013,10 @@ export class Text extends Play {
     return this.data.text
   }
 
+  set text(text: string) {
+    this.data.text = text
+  }
+
   get size() {
     return this.data.size ?? 128
   }
@@ -978,10 +1035,10 @@ export class Text extends Play {
   }
 
   _draw(batch: Batch) {
-    batch.push_matrix(Mat3x2.create_transform(Vec2.zero, this.origin, Vec2.one, this.rotation))
+    batch.push_matrix(Mat3x2.create_transform(this.position, this.origin, Vec2.one, this.rotation))
 
-    this.g_position = Vec2.transform(this.position, batch.m_matrix)
-    batch.str_j(this.font, this.text, this.position, this.justify, this.size, this.color)
+    this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
+    batch.str_j(this.font, this.text, Vec2.zero, this.justify, this.size, this.color)
     batch.pop_matrix()
   }
 }
@@ -1108,7 +1165,8 @@ class TabPanel extends Play {
 type ScrollableContentData = {
   w: number,
   h: number,
-  content: Play
+  content: Play,
+  on_scroll?: () => void
 }
 
 class ScrollableContent extends Play {
@@ -1139,17 +1197,12 @@ class ScrollableContent extends Play {
 
   _init() {
 
+    this.data.content.parent = this
     this.content_base_position = Vec2.copy(this.data.content.position)
 
     this.scroll_y = 0
     this.scroll_off = 0
     this.scroll_edge_off = 0
-
-    this.make(RectView, Vec2.zero, {
-      w: this.data.w,
-      h: this.data.h,
-      color: Color.hex(0x202431)
-    })
 
     this.make(RectView, Vec2.make(this.data.w - 20 -8 , 8), {
       w: 20,
@@ -1164,12 +1217,17 @@ class ScrollableContent extends Play {
       color: Color.white
     })
 
+    let e: Vec2 | undefined
     let self = this
-    this.unbindable_input({
-      on_drag(d: DragEvent, d0?: DragEvent) {
-        if (d.m) {
-          self.scroll_off = (d.m.y - d.e.y) * 1080
-        }
+    this.make(Clickable, Vec2.zero, {
+      rect: Rect.make(0, 0, this.width, this.height),
+      on_drag_begin(_e: Vec2) {
+        self.data.on_scroll?.()
+        e = _e
+        return true
+      },
+      on_drag(m: Vec2) {
+        self.scroll_off = (m.y - e!.y)
         return true
       },
       on_up(e: Vec2, right: boolean) {
@@ -1179,11 +1237,20 @@ class ScrollableContent extends Play {
         if (self.scroll_y > 0) {
           self.scroll_edge_off = self.scroll_y
           self.scroll_y = 0
-        }
-        let edge = -(self.content as any).height + self.data.h
-        if (self.scroll_y < edge) {
-          self.scroll_edge_off = self.scroll_y - edge
-          self.scroll_y = edge
+        } else {
+
+            let edge = -(self.content as any).height + self.data.h
+          if ((self.content as any).height < self.data.h) {
+
+            self.scroll_edge_off = self.scroll_y
+            self.scroll_y = 0
+          } else {
+
+            if (self.scroll_y < edge) {
+              self.scroll_edge_off = self.scroll_y - edge
+              self.scroll_y = edge
+            }
+          }
         }
 
         return true
@@ -1215,12 +1282,11 @@ class ScrollableContent extends Play {
     this.thumb.draw(batch)
     batch.pop_scissor()
 
-    //batch.push_matrix(Mat3x2.create_translation(Vec2.make(40, 40 + this.scroll_y + this.scroll_off)))
 
     batch.push_scissor(Rect.make(position.x, position.y, this.width, this.height))
+    this.g_scissor = Rect.make(position.x, position.y, this.width, this.height)
     this.data.content.draw(batch)
     batch.pop_scissor()
-    //batch.pop_matrix()
 
     batch.pop_matrix()
   }
@@ -1265,6 +1331,580 @@ class TransitionMask extends Play {
   }
 }
 
+
+type MainSideButtonData = {
+  text: string,
+  on_click: () => void
+}
+
+class MainSideButton extends Play {
+
+  get data() {
+    return this._data as MainSideButtonData
+  }
+
+  _init() {
+
+
+    let bg = this.make(Anim, Vec2.zero, { name: 'main_settings_bg' })
+
+    let s = this.make(Text, Vec2.make(320, 86), { 
+      text: this.data.text, 
+      center: true,
+      size: 64,
+      color: Color.black
+    })
+    let t = this.make(Text, Vec2.make(320, 86), { 
+      text: this.data.text, 
+      center: true,
+      size: 64
+    })
+
+    let tpositiony = t.position.y
+    let self = this
+    this.make(Clickable, Vec2.make(100, 50), {
+      rect: Rect.make(0, 0, 440, 120),
+      on_hover() {
+
+        bg.play('hover')
+        self.tween([t.position.y, tpositiony - 2], (v) => {
+          t.position.y = v
+        }, ticks.lengths)
+      },
+      on_hover_end() {
+        bg.play('idle')
+        self.tween([t.position.y, tpositiony + 2], (v) => {
+          t.position.y = v
+        }, ticks.lengths)
+      },
+      on_click() {
+        self.data.on_click()
+      }
+    })
+
+  }
+}
+
+type HoverAnimData = {
+  name: string,
+  rect: Rect,
+  debug?:boolean,
+  on_click: () => void
+}
+class HoverAnim extends Play {
+  get data() {
+    return this._data as HoverAnimData
+  }
+  _init() {
+
+    let anim = this.make(Anim, Vec2.zero, { name: this.data.name })
+
+    let self = this
+    this.make(Clickable, Vec2.make(this.data.rect.x, this.data.rect.y), {
+      debug: this.data.debug,
+      rect: Rect.make(0, 0, this.data.rect.w, this.data.rect.h),
+      on_hover() {
+        anim.play('hover')
+      },
+      on_hover_end() {
+        anim.play('idle')
+      },
+      on_click() {
+        self.data.on_click()
+      }
+    })
+  }
+}
+
+type Navigation2Data = {
+  text: string,
+  on_back: () => void
+}
+
+class Navigation2 extends Play {
+
+  get data() {
+    return this._data as Navigation2Data
+  }
+
+  _init() {
+    let self = this
+    this.make(HoverAnim, Vec2.zero, {
+      name: 'navigation_bg',
+      rect: Rect.make(30, 30, 540, 100),
+      on_click() {
+        self.data.on_back()
+      }})
+    this.make(Text, Vec2.make(112, 54), {
+      text: this.data.text,
+      size: 72
+    })
+  }
+}
+
+class HowtoPlay2 extends Play {
+
+  _init() {
+
+    this.make(RectView, Vec2.zero, { w: 1920, h: 1080, color: Color.hex(0xb4beb4)})
+
+
+    this.make(Navigation2, Vec2.zero, {
+      text: 'how to play',
+      on_back() {
+        scene_transition.next(MainMenu2)
+      }
+    })
+
+  }
+}
+
+type DropdownData = {
+  items: Array<string>
+  selected_index: number,
+  on_selected: (i: number) => void
+}
+
+class Dropdown extends Play {
+
+  get data() {
+    return this._data as DropdownData
+  }
+
+  box!: DropdownBox
+
+  set selected_index(v: number) {
+    this.box.selected_index = v
+    this.selected_text.text = this.data.items[v]
+  }
+
+  selected_text!: Text
+
+  _init() {
+
+
+    let bg = this.make(Anim, Vec2.zero, {
+      name: 'dropdown_bg'
+    })
+    this.selected_text = this.make(Text, Vec2.make(32, 60), {
+      text: 'english',
+      size: 72
+    })
+
+    let self = this
+
+    this.make(Clickable, Vec2.make(0, 0), {
+      abs: true,
+      rect: Rect.make(0, 0, 1920, 1080),
+      on_click() {
+        let res = self.box.visible
+        self.box.visible = false
+        return res
+      },
+      on_drag_begin() {
+        self.box.visible = false
+        return false
+      }
+    })
+
+    this.make(Clickable, Vec2.make(16, 32), {
+      rect: Rect.make(0, 0, 480, 112),
+      on_hover() {
+        bg.play('hover')
+      },
+      on_hover_end() {
+        bg.play('idle')
+      },
+      on_click() {
+        if (!self.box.visible) {
+          self.box.visible = true
+          return true
+        }
+        return false
+      }
+    })
+
+  }
+}
+
+type DropdownBoxData = {
+  items: Array<string>,
+  selected_index: number,
+  on_selected: (i: number) => void
+}
+class DropdownBox extends Play {
+  get data () {
+    return this._data as DropdownBoxData
+  }
+
+  set selected_index(v: number) {
+    this.dropdown_list.selected_index = v
+  }
+
+  dropdown_list!: DropdownLongList
+
+
+  _init() {
+
+    this.make(RectView, Vec2.make(0, 0), {
+      w: 500,
+      h: 500,
+      color: Color.hex(0x315594)
+    })
+
+    let self = this
+    let content = this._make(DropdownLongList, Vec2.make(0, 0), {
+      items: this.data.items,
+      selected_index: this.data.selected_index,
+      on_selected(i: number) {
+        self.data.on_selected(i)
+      }
+    })
+
+    this.dropdown_list = content
+
+    this.make(ScrollableContent, Vec2.make(0, 0), {
+      w: 500,
+      h: 500,
+      content
+    })
+  }
+}
+
+class DropdownLongList extends Play {
+  get data() {
+    return this._data as DropdownBoxData
+  }
+
+  height!: number
+
+  _selected_index!: number
+  set selected_index(i: number) {
+    this._selected_index = i
+    this._color_items()
+    this.data.on_selected(i)
+  }
+
+  get selected_index() {
+    return this._selected_index
+  }
+
+  items!: Array<DropdownListItem>
+
+  _init() {
+
+
+    let h = 140 
+    let y = 0
+    let self = this
+    this.items = this.data.items.map((item, i) => {
+      let _ = this.make(DropdownListItem, Vec2.make(0, y), {
+        item,
+        on_selected() {
+          self.selected_index = i
+        }
+      })
+      y += h 
+      return _
+    })
+
+    this.height = y + 30
+
+    this._selected_index = this.data.selected_index
+  }
+
+  _color_items() {
+    this.items.forEach((item, i) => {
+      item.selected = this.selected_index === i
+    })
+  }
+}
+
+
+type DropdownListItemData = {
+  item: string,
+  on_selected: () => void
+}
+class DropdownListItem extends Play {
+  get data() {
+    return this._data as DropdownListItemData
+  }
+
+  set selected(v: boolean) {
+    if (v) {
+      this.bg.color = Color.white
+      this.text.color = Color.hex(0x315594)
+    } else {
+      this.text.color = Color.white
+      this.bg.color = Color.hex(0x315594)
+    }
+  }
+
+  bg!: RectView
+  text!: Text
+
+  _init() {
+
+    this.bg = this.make(RectView, Vec2.make(-40, -30), {
+      w: 470,
+      h: 140,
+      color: Color.hex(0x315594)
+    })
+
+    this.text = this.make(Text, Vec2.make(0, 0), {
+      text: this.data.item,
+      size: 96
+    })
+
+    let self = this
+    let n = this.make(Clickable, Vec2.make(-40, -30), {
+      rect: Rect.make(0, 0, 470, 140),
+      on_click() {
+        self.data.on_selected()
+        return true
+      }
+    })
+  }
+}
+
+class GeneralSettings extends Play {
+
+  _init() {
+
+    let language_setting = this.make(DropdownSetting, Vec2.make(0, 0), {
+      name: 'language',
+      items: ['english', 'turkish', 'french', 'italian', 'german'],
+      selected_index: 0,
+      on_selected(i: number) {
+        console.log(i)
+      }
+    })
+
+    let theme_setting = this.make(DropdownSetting, Vec2.make(0, 220), {
+      name: 'color theme',
+      items: ['pink', 'blue', 'orange'],
+      selected_index: 0,
+      on_selected(i: number) {
+        console.log(i)
+      }
+    })
+
+
+
+    this.make_box(language_setting)
+    this.make_box(theme_setting)
+
+
+  }
+
+  make_box(setting: DropdownSetting) {
+    let box = this.make(DropdownBox, Vec2.make(
+      setting.position.x + setting.dropdown.position.x,
+      setting.position.y + setting.dropdown.position.y + 160), {
+      items: setting.data.items,
+      selected_index: setting.data.selected_index,
+      on_selected(i: number) {
+        setting.dropdown.data.on_selected(i)
+        setting.dropdown.selected_text.text = setting.data.items[i]
+      }
+    })
+    setting.dropdown.box = box
+    box.visible = false
+  }
+
+
+}
+
+type DropdownSettingData = {
+  name: string,
+  items: Array<string>,
+
+  selected_index: number,
+  on_selected: (_: number) => void
+}
+class DropdownSetting extends Play {
+
+  get data() {
+    return this._data as DropdownSettingData
+  }
+
+  dropdown!: Dropdown
+
+  _init() {
+
+    this.make(RectView, Vec2.make(0, 0), {
+      w: 1400,
+      h: 200,
+      color: Color.hex(0x202441)
+    })
+    
+    this.make(Text, Vec2.make(50, 60), {
+      text: this.data.name,
+      size: 96
+    })
+    let self = this
+    this.dropdown = this.make(Dropdown, Vec2.make(720, 8), {
+      items: this.data.items,
+      selected_index: this.data.selected_index,
+      on_selected(i: number) {
+        self.data.on_selected(i)
+      }
+    })
+  }
+}
+
+class Settings2 extends Play {
+
+  _init() {
+
+    this.make(RectView, Vec2.zero, { w: 1920, h: 1080, color: Color.hex(0xb4beb4)})
+
+
+    this.make(Navigation2, Vec2.zero, {
+      text: 'settings',
+      on_back() {
+        scene_transition.next(MainMenu2)
+      }
+    })
+
+    let content = this._make(GeneralSettings, Vec2.make(0, 0), {})
+
+
+    this.make(ScrollableContent, Vec2.make(220, 150), {
+      w: 1480,
+      h: 910,
+      content
+    })
+
+
+
+  }
+
+}
+
+class MainMenu2 extends Play {
+
+  _init() {
+
+
+    this.make(RectView, Vec2.zero, { w: 1920, h: 1080, color: Color.hex(0xb4beb4)})
+
+
+    let _ = this.make(Anim, Vec2.zero, { name: 'main_title_bg' })
+    _.scale = Vec2.make(2, 2)
+
+    _ = this.make(Anim, Vec2.make(200, 150), { name: 'main_bg' })
+
+    let lisotaire = this.make(Text, Vec2.make(16, 32), { text: 'lisotaire', color: Color.hex(0x202431)})
+    this.make(Text, Vec2.make(16 + lisotaire.width, 32), { text: '.com', color: Color.hex(0xb4beb4)})
+
+
+    let card_x = 200
+    let card_w = 320
+    let solitaire_bg = this.make(Anim, Vec2.make(card_x, 250), { name: 'main_card_bg' })
+    solitaire_bg.play_now('solitaire')
+
+    let self = this
+    this.make(Clickable, Vec2.make(card_x + 120, 350), {
+      rect: Rect.make(0, 0, 220, 500),
+      on_hover() {
+        solitaire_bg.play('solitaire_hover')
+      },
+      on_hover_end() {
+        solitaire_bg.play('solitaire')
+      },
+      on_click() {
+      }
+    })
+    let solitaire = this.make(Text, Vec2.make(card_x + 120 + 140, 350 + 250), {
+      text: 'solitaire',
+      center: true,
+      size: 98
+    })
+    solitaire.rotation = Math.PI / 2
+
+
+
+    let fourtimes_bg = this.make(Anim, Vec2.make(card_x + card_w, 250), { name: 'main_card_bg' })
+    fourtimes_bg.play_now('fourtimes')
+    this.make(Clickable, Vec2.make(card_x + card_w + 120, 350), {
+      rect: Rect.make(0, 0, 220, 500),
+      on_hover() {
+        fourtimes_bg.play('fourtimes_hover')
+      },
+      on_hover_end() {
+        fourtimes_bg.play('fourtimes')
+      },
+      on_click() {
+      }
+    })
+    let fourtimes = this.make(Text, Vec2.make(card_x + card_w + 120 + 140, 350 + 250), {
+      text: 'fourtimes',
+      center: true,
+      size: 82
+    })
+    fourtimes.rotation = Math.PI / 2
+
+
+
+
+    let octopus_bg = this.make(Anim, Vec2.make(card_x + card_w * 2, 250), { name: 'main_card_bg' })
+    octopus_bg.play_now('octopus')
+    this.make(Clickable, Vec2.make(card_x + card_w * 2 + 120, 350), {
+      rect: Rect.make(0, 0, 220, 500),
+      on_hover() {
+        octopus_bg.play('octopus_hover')
+      },
+      on_hover_end() {
+        octopus_bg.play('octopus')
+      },
+      on_click() {
+      }
+    })
+    let octopus = this.make(Text, Vec2.make(card_x + card_w * 2+ 120 + 140, 350 + 250), {
+      text: 'octopus',
+      center: true,
+      size: 96
+    })
+    octopus.rotation = Math.PI / 2
+
+
+
+    let side_h = 180
+    let side_y = 200
+    this.make(MainSideButton, Vec2.make(1300, side_y), {
+      text: 'how to play',
+      on_click() {
+        scene_transition.next(HowtoPlay2)
+      }
+    })
+
+    this.make(MainSideButton, Vec2.make(1300, side_y + side_h), {
+      text: 'statistics',
+      on_click() {
+      }
+    })
+
+    this.make(MainSideButton, Vec2.make(1300, side_y + side_h * 2), {
+      text: 'settings',
+      on_click() {
+      }
+    })
+
+    this.make(MainSideButton, Vec2.make(1300, side_y + side_h * 3), {
+      text: 'about',
+      on_click() {
+      }
+    })
+
+
+
+
+
+  }
+
+}
+
 class SceneTransition extends Play {
   
   mask_target!: Target
@@ -1290,9 +1930,12 @@ class SceneTransition extends Play {
     this.mask_target = Target.create(Game.width, Game.height)
 
     //this.current = this._make(CardShowcase, Vec2.zero, {})
-    this.current = this._make(SolitairePlay, Vec2.zero, {})
+    // this.current = this._make(SolitairePlay, Vec2.zero, {})
     // this.current = this._make(MainMenu, Vec2.zero, {})
     //this.current = this._make(Statistics, Vec2.zero, {})
+    //this.current = this._make(MainMenu2, Vec2.zero, {})
+    //this.current = this._make(HowtoPlay2, Vec2.zero, {})
+    this.current = this._make(Settings2, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
 

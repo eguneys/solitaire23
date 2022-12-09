@@ -98,7 +98,7 @@ class Stock extends Play {
   _init() {
     this.stock = this.make(Stack, Vec2.make(0, 0), { h: 1 })
 
-    this.waste = this.make(Stack, Vec2.make(0, 300), {})
+    this.waste = this.make(Stack, Vec2.make(0, 260), {})
     this.waste_hidden = this.make(Stack, Vec2.make(0, 300), { h: 0 })
 
     this.recycle_anim = this.make(Anim, Vec2.make(12, 12), { name: 'recycle' })

@@ -5,7 +5,7 @@ import pack from './_pack.js'
 
 const ase_content = () => {
   pack().catch(e => {
-    console.warn('failed to pack.')
+    console.warn('failed to pack.', e)
   })
 }
 

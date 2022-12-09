@@ -84,6 +84,23 @@ export abstract class Play {
     return this.position
   }
 
+  get p_visible(): boolean {
+    if (this.parent) {
+      return this.parent.p_visible && this.visible
+    }
+    return this.visible
+  }
+
+  g_scissor?: Rect
+
+  get p_scissor(): Rect | undefined {
+    if (this.parent) {
+      return this.g_scissor || this.parent.p_scissor
+    }
+    return this.g_scissor
+
+  }
+
   send_front() {
     if (this.parent) {
       this.parent.objects.splice(this.parent.objects.indexOf(this), 1)
