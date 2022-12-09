@@ -43,6 +43,10 @@ export class RectView extends Play {
     return this._color
   }
 
+  set height(h: number) {
+    this.data.h = h
+  }
+
   _init() {
     this.color = this.data.color ?? Color.white
   }
@@ -255,7 +259,7 @@ export class Clickable extends Play {
         let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
         let rect = self.rect
         if (rect.overlaps(point)) {
-          return self.data.on_click?.()
+          return self.data.on_click?.() || false
         }
         return false
       }
@@ -1487,7 +1491,7 @@ class Dropdown extends Play {
       name: 'dropdown_bg'
     })
     this.selected_text = this.make(Text, Vec2.make(32, 60), {
-      text: 'english',
+      text: this.data.items[this.data.selected_index],
       size: 72
     })
 
@@ -1546,7 +1550,7 @@ class DropdownBox extends Play {
 
   _init() {
 
-    this.make(RectView, Vec2.make(0, 0), {
+    let bg = this.make(RectView, Vec2.make(0, 0), {
       w: 500,
       h: 500,
       color: Color.hex(0x315594)
@@ -1561,11 +1565,13 @@ class DropdownBox extends Play {
       }
     })
 
+    bg.height = Math.min(500, content.height)
+
     this.dropdown_list = content
 
     this.make(ScrollableContent, Vec2.make(0, 0), {
       w: 500,
-      h: 500,
+      h: Math.min(500, content.height),
       content
     })
   }
@@ -1671,6 +1677,7 @@ class GeneralSettings extends Play {
 
   _init() {
 
+    let h = 220
     let language_setting = this.make(DropdownSetting, Vec2.make(0, 0), {
       name: 'language',
       items: ['english', 'turkish', 'french', 'italian', 'german'],
@@ -1680,9 +1687,19 @@ class GeneralSettings extends Play {
       }
     })
 
-    let theme_setting = this.make(DropdownSetting, Vec2.make(0, 220), {
+    let theme_setting = this.make(DropdownSetting, Vec2.make(0, h), {
       name: 'color theme',
       items: ['pink', 'blue', 'orange'],
+      selected_index: 0,
+      on_selected(i: number) {
+        console.log(i)
+      }
+    })
+
+
+    let sound_setting = this.make(DropdownSetting, Vec2.make(0, h * 2), {
+      name: 'sounds',
+      items: ['on', 'off'],
       selected_index: 0,
       on_selected(i: number) {
         console.log(i)
@@ -1693,7 +1710,9 @@ class GeneralSettings extends Play {
 
     this.make_box(language_setting)
     this.make_box(theme_setting)
+    this.make_box(sound_setting)
 
+    this.height = h * 3 + 500
 
   }
 
