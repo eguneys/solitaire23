@@ -7,6 +7,7 @@ import Content from './content'
 import Input, { Hooks, EventPosition, DragEvent } from './input'
 import { howtos } from './howtos'
 import { Transition, transition } from './transition'
+import { pallette } from './pallette'
 
 import { rmap, ease, lerp, appr } from './lerp'
 import { InfiniteScrollableList } from './scrollable'
@@ -1602,7 +1603,8 @@ class Dropdown extends Play {
     this.selected_text = this.make(TransText, Vec2.make(32, 60), {
       no_trans: this.data.no_trans,
       key: this.data.items[this.data.selected_index],
-      size: 72
+      width: 250,
+      height: 100,
     })
 
     let self = this
@@ -1806,6 +1808,7 @@ class GeneralSettings extends Play {
       }
     })
 
+    /*
     let theme_setting = this.make(DropdownSetting, Vec2.make(0, h), {
       name: 'color_theme',
       items: ['pink', 'blue', 'orange'],
@@ -1814,9 +1817,10 @@ class GeneralSettings extends Play {
         console.log(i)
       }
     })
+   */
 
 
-    let sound_setting = this.make(DropdownSetting, Vec2.make(0, h * 2), {
+    let sound_setting = this.make(DropdownSetting, Vec2.make(0, h * 1), {
       name: 'sounds',
       items: ['on', 'off'],
       selected_index: 0,
@@ -1828,7 +1832,7 @@ class GeneralSettings extends Play {
 
 
     this.make_box(language_setting, true)
-    this.make_box(theme_setting)
+    //this.make_box(theme_setting)
     this.make_box(sound_setting)
 
     this.height = h * 3 + 500
@@ -2050,6 +2054,7 @@ class MainMenu2 extends Play {
 
 class SceneTransition extends Play {
   
+  theme_target!: Target
   mask_target!: Target
   target!: Target
   target2!: Target
@@ -2072,6 +2077,8 @@ class SceneTransition extends Play {
     this.target = Target.create(Game.width, Game.height)
     this.mask_target = Target.create(Game.width, Game.height)
 
+    this.theme_target = Target.create(Game.width, Game.height)
+
     //this.current = this._make(CardShowcase, Vec2.zero, {})
     // this.current = this._make(SolitairePlay, Vec2.zero, {})
     // this.current = this._make(MainMenu, Vec2.zero, {})
@@ -2081,6 +2088,7 @@ class SceneTransition extends Play {
     this.current = this._make(Settings2, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
+    pallette.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
 
   }
 
@@ -2104,27 +2112,34 @@ class SceneTransition extends Play {
 
     if (!this._next) {
       this.current.draw(batch)
-      return
+
+      batch.render(this.theme_target)
+      batch.clear()
+    } else {
+
+      this.current.draw(batch)
+      batch.render(this.target)
+      batch.clear()
+
+      this._next.draw(batch)
+      batch.render(this.target2)
+      batch.clear()
+
+      this.mask_target.clear(Color.hex(0xff0000))
+      this.mask?.draw(batch)
+      batch.render(this.mask_target)
+      batch.clear()
+
+      transition.texture = this.target.texture(0)
+      transition.texture2 = this.target2.texture(0)
+      transition.mask_texture = this.mask_target.texture(0)
+
+      transition.render(this.theme_target)
     }
 
-    this.current.draw(batch)
-    batch.render(this.target)
-    batch.clear()
 
-    this._next.draw(batch)
-    batch.render(this.target2)
-    batch.clear()
-
-    this.mask_target.clear(Color.hex(0xff0000))
-    this.mask?.draw(batch)
-    batch.render(this.mask_target)
-    batch.clear()
-
-    transition.texture = this.target.texture(0)
-    transition.texture2 = this.target2.texture(0)
-    transition.mask_texture = this.mask_target.texture(0)
-
-    transition.render()
+    pallette.texture = this.theme_target.texture(0)
+    pallette.render()
   }
 }
 
@@ -2161,12 +2176,6 @@ export default class Game extends Play {
     App.backbuffer.clear(Color.black)
 
     this._draw_children(batch)
-
-    {
-        batch.render(App.backbuffer)
-        batch.clear()
-    }
-
     Input._sort_hooks()
   }
 
