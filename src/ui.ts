@@ -16,7 +16,7 @@ import { bg1, link_color, Play, PlayType} from './play'
 import { ticks } from './shared'
 import { Anim } from './anim'
 
-import { Text, RectView, Clickable, Background, MainMenu } from './game'
+import { TransText, RectView, Clickable, Background, MainMenu } from './game'
 
 type ButtonData = {
   text: string,
@@ -35,12 +35,12 @@ export class Button extends Play {
       name: 'button_bg'
     })
     bg.origin = Vec2.make(366, 200).scale(1/2)
-    bg.scale = Vec2.make(0.6, 0.6)
 
-    let _ = this.make(Text, Vec2.make(0, -25), {
-      text: this.data.text,
-      center: true,
-      size: 96
+    let _ = this.make(TransText, Vec2.make(0, -30), {
+      width: 360,
+      height: 100,
+      key: this.data.text,
+      center: true
     })
 
     let self = this

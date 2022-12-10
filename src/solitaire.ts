@@ -15,7 +15,8 @@ import { bg1, link_color, Play, PlayType} from './play'
 
 import { Anim } from './anim'
 
-import { Text, RectView, Clickable, Background, MainMenu } from './game'
+import { TransText, Text, RectView, Clickable, Background, MainMenu2 } from './game'
+import { Settings2, HowtoPlay2 } from './game'
 import { scene_transition }from './game'
 
 import { HowtoPlay, Settings, About } from './game'
@@ -629,15 +630,18 @@ class Dealer extends Play {
 class ScoreBoard extends Play {
 
   _init() {
-    let _ = this.make(Text, Vec2.make(0, 0), {
-      text: 'score',
+    let _ = this.make(TransText, Vec2.make(0, 0), {
+      key: 'score',
       center: true,
-      size: 96
+      width: 200,
+      height: 100
     })
-    this.make(Text, Vec2.make(0, _.height), {
-      text: '1000',
+    this.make(TransText, Vec2.make(0, _.height), {
+      no_trans: true,
+      key: '1000',
       center: true,
-      size: 96
+      width: 200,
+      height: 100
     })
 
 
@@ -655,16 +659,14 @@ export class SolitairePlay extends Play {
 
     let game = this.make(SolitaireGame, Vec2.make(0, 0), {})
 
-    this.make(Button, Vec2.make(130, 1000), {
-      text: 'kçışhpöü',
+    this.make(Button, Vec2.make(160, 1000), {
+      text: 'undo',
       on_click() {
         console.log('undo')
       }
     })
 
-    console.log('çışöüİğ'.split('').map(_ => [_, _.charCodeAt(0)]))
-
-    this.make(ScoreBoard, Vec2.make(130, 800), {
+    this.make(ScoreBoard, Vec2.make(150, 760), {
     })
 
 
@@ -710,13 +712,13 @@ class SideBar extends Play {
     let y = 60 
     let h = 160
     this.make(SideBarItem, Vec2.make(x, y), {
-      text: 'main menu',
+      text: 'main_menu',
       on_click() {
-        scene_transition.next(MainMenu)
+        scene_transition.next(MainMenu2)
       }
     })
     this.make(SideBarItem, Vec2.make(x, y + h), {
-      text: 'new game',
+      text: 'new_game',
       on_click() {
       }
     })
@@ -724,13 +726,13 @@ class SideBar extends Play {
     this.make(SideBarItem, Vec2.make(x, y + h * 2), {
       text: 'settings',
       on_click() {
-        scene_transition.next(Settings)
+        scene_transition.next(Settings2)
       }
     })
     this.make(SideBarItem, Vec2.make(x, y + h * 3), {
-      text: 'how to play',
+      text: 'how_to_play',
       on_click() {
-        scene_transition.next(HowtoPlay)
+        scene_transition.next(HowtoPlay2)
       }
     })
     this.make(SideBarItem, Vec2.make(x, y + h * 4), {
@@ -758,9 +760,10 @@ class SideBarItem extends Play {
   }
 
   _init() {
-    this.make(Text, Vec2.make(0, 0), {
-      text: this.data.text,
-      size: 110,
+    this.make(TransText, Vec2.make(0, 0), {
+      key: this.data.text,
+      width: 350,
+      height: 100
     })
 
 

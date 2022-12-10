@@ -14,6 +14,7 @@ import { InfiniteScrollableList } from './scrollable'
 
 import { bg1, link_color, Play, PlayType} from './play'
 
+import { Nine } from './nine'
 import { Anim } from './anim'
 import { Tween } from './tween'
 
@@ -869,11 +870,14 @@ class LongHyperText extends Play {
   height!: number
 
   _init() {
+    let font_size = 60
 
-    let space_width = this._make(Text, Vec2.zero, {
-      size: 96,
+    let space = this._make(Text, Vec2.zero, {
+      size: font_size,
       text: ' '
-    }).width
+    })
+    let space_width = space.width
+    let space_height = space.height
 
     let w = 0
     let h = 0
@@ -883,7 +887,7 @@ class LongHyperText extends Play {
         let _
         if (obj.link) {
           _ = this.make(HyperText, Vec2.zero, {
-            size: 96,
+            size: font_size,
             text: obj.text,
             color: link_color,
             on_click() {
@@ -893,7 +897,7 @@ class LongHyperText extends Play {
         } else {
 
           _ = this.make(Text, Vec2.zero, {
-            size: 96,
+            size: font_size,
             text: obj.text
           })
         }
@@ -909,16 +913,18 @@ class LongHyperText extends Play {
       })
 
       w = 0
-      h += 96
+      h += space_height
     })
 
-    this.height = h + 96
+    this.height = h + space_height
   }
 
 }
 
 type TabsData = {
-  tabs: Array<Play>
+  tabs: Array<Tab>,
+  selected_index: number,
+  on_selected_index: (_: number) => void
 }
 
 class Tabs extends Play {
@@ -927,11 +933,39 @@ class Tabs extends Play {
     return this._data as TabsData
   }
 
+  on_click(tab: Tab) {
+    this.selected_index = this.data.tabs.indexOf(tab)
+  }
+
+  _selected_index!: number
+
+  get selected_index() {
+    return this._selected_index
+  }
+
+  set selected_index(i: number) {
+    this._selected_index = i
+    this.data.tabs.forEach((_, _i) => _.set_active(i === _i))
+    this.data.on_selected_index(i)
+  }
 
   _init() {
 
+    this.selected_index = this.data.selected_index
+
+    let width = this.data.tabs.reduce((a, b) => a + (b as Tab).width, 0)
+    this.make(RectView, Vec2.make(10, 130), {
+      w: width,
+      h: 10,
+      color: Color.hex(0x101041)
+    })
+
+    this.data.tabs.forEach(_ => _.parent = this)
   }
 
+  _update() {
+    this.data.tabs.forEach(_ => _.update())
+  }
 
   _draw(batch: Batch) {
     batch.push_matrix(Mat3x2.create_translation(this.position))
@@ -1020,6 +1054,9 @@ export class TransText extends Play {
     this._text_view.color = c
   }
 
+  get height() {
+    return this._text_view.height
+  }
 
   _text!: string
 
@@ -1182,6 +1219,7 @@ class HyperText extends Text {
 type TabData = {
   size?: number,
   text: string,
+  no_trans?: true,
   w: number
 }
 
@@ -1199,23 +1237,52 @@ class Tab extends Play {
     return 32 + 64
   }
 
+  _active?: boolean
+  set_active(v: boolean) {
+    this._active = v
+    if (v) {
+      this.anim.play('active')
+    } else {
+      this.anim.play('idle')
+    }
+  }
+  anim!: Anim
+
   _init() {
-    this.make(RectView, Vec2.zero, {
-      w: this.width,
-      h: this.height,
-      color: Color.hex(0x202431)
+    let anim = this.make(Anim, Vec2.zero, {
+      name: 'tab3_bg'
+    })
+    this.anim = anim
+
+    this.make(TransText, Vec2.make(this.data.w/2, 48), {
+      no_trans: this.data.no_trans,
+      width: this.width - 80,
+      height: this.height,
+      key: this.data.text,
+      center: true
     })
 
-    this.make(Text, Vec2.make(this.data.w/2, 8), {
-      size: this.data.size,
-      text: this.data.text,
-      center: true
+    let self = this
+    this.make(Clickable, Vec2.make(32, 32), {
+      rect: Rect.make(0, 0, 360, 90),
+      on_hover() {
+        if (!self._active) {
+          anim.play('hover')
+        }
+      },
+      on_hover_end() {
+        anim.play(self._active ? 'active' : 'idle')
+      },
+      on_click() {
+        (self.parent as Tabs).on_click(self)
+      }
     })
   }
 
 }
 
 type TabPanelData = {
+  selected_index: number,
   panels: Array<Play>,
   w: number,
   h: number
@@ -1228,24 +1295,38 @@ class TabPanel extends Play {
     return this._data as TabPanelData
   }
 
+  get selected_index() {
+    return this._selected_index
+  }
+
+  _selected_index!: number
+  set selected_index(i: number) {
+    this._selected_index = i
+  }
+
+  get active_panel() {
+    return this.data.panels[this.selected_index]
+  }
+
   _init() {
 
-    this.make(RectView, Vec2.zero, {
+    this.selected_index = this.data.selected_index
+    this.make(Nine, Vec2.zero, {
+      name: 'panel_bg_nine_slice',
       w: this.data.w,
-      h: this.data.h,
-      color: Color.hex(0x202431)
+      h: this.data.h
     })
   }
 
   _update() {
-    this.data.panels.forEach(_ => _.update())
+    this.active_panel.update()
   }
 
   _draw(batch: Batch) {
     batch.push_matrix(Mat3x2.create_translation(this.position))
     this._draw_children(batch)
 
-    this.data.panels.forEach(_ => _.draw(batch))
+    this.active_panel.draw(batch)
     batch.pop_matrix()
   }
 
@@ -1555,7 +1636,7 @@ class Navigation2 extends Play {
   }
 }
 
-class HowtoPlay2 extends Play {
+export class HowtoPlay2 extends Play {
 
   _init() {
 
@@ -1568,6 +1649,88 @@ class HowtoPlay2 extends Play {
         scene_transition.next(MainMenu2)
       }
     })
+
+
+    let w = 410
+    let tabs = [
+      this._make(Tab, Vec2.make(2, 2), {
+        no_trans: true,
+        text: 'solitaire',
+        w
+      }),
+      this._make(Tab, Vec2.make(2 + w + 4, 2), {
+        no_trans: true,
+        text: 'fourtimes',
+        w
+      }),
+      this._make(Tab, Vec2.make(2 + (w + 4) *2, 2), {
+        no_trans: true,
+        text: 'octopus',
+        w
+      })
+    ]
+
+
+
+
+    let content = this._make(LongHyperText, Vec2.make(0, 0), {
+      width: 1800 - 80,
+      content: howtos['solitaire']
+    })
+
+    let solitaire = this._make(ScrollableContent, Vec2.make(20, 80), {
+      w: 1800,
+      h: 700,
+      content
+    })
+
+
+    content = this._make(LongHyperText, Vec2.make(0, 0), {
+      width: 1800 - 80,
+      content: howtos['fourtimes']
+    })
+
+    let fourtimes = this._make(ScrollableContent, Vec2.make(20, 80), {
+      w: 1800,
+      h: 700,
+      content
+    })
+
+    content = this._make(LongHyperText, Vec2.make(0, 0), {
+      width: 1800 - 80,
+      content: howtos['octopus']
+    })
+
+    let octopus = this._make(ScrollableContent, Vec2.make(20, 80), {
+      w: 1800,
+      h: 700,
+      content
+    })
+
+    let panels = [
+      solitaire,
+      fourtimes,
+      octopus
+    ]
+
+    let panel = this.make(TabPanel, Vec2.make(20, 180), {
+      w: 1860,
+      h: 860,
+      panels
+    })
+
+
+
+
+
+    this.make(Tabs, Vec2.make(600, 8), {
+      tabs,
+      selected_index: 0,
+      on_selected_index(i: number) {
+        panel.selected_index = i
+      }
+    })
+
 
   }
 }
@@ -1798,7 +1961,7 @@ class GeneralSettings extends Play {
   _init() {
 
     let h = 220
-    let language_setting = this.make(DropdownSetting, Vec2.make(0, 0), {
+    let language_setting = this.make(DropdownSetting, Vec2.make(40, 0), {
       no_trans: true,
       name: 'language',
       items: languages.map(_ => Trans.lang_key(_)),
@@ -1820,7 +1983,7 @@ class GeneralSettings extends Play {
    */
 
 
-    let sound_setting = this.make(DropdownSetting, Vec2.make(0, h * 1), {
+    let sound_setting = this.make(DropdownSetting, Vec2.make(40, h * 1), {
       name: 'sounds',
       items: ['on', 'off'],
       selected_index: 0,
@@ -1878,7 +2041,7 @@ class DropdownSetting extends Play {
   _init() {
 
     this.make(RectView, Vec2.make(0, 0), {
-      w: 1400,
+      w: 1300,
       h: 200,
       color: Color.hex(0x202441)
     })
@@ -1900,7 +2063,7 @@ class DropdownSetting extends Play {
   }
 }
 
-class Settings2 extends Play {
+export class Settings2 extends Play {
 
   _init() {
 
@@ -1914,12 +2077,18 @@ class Settings2 extends Play {
       }
     })
 
+    this.make(Nine, Vec2.make(220, 150), {
+      name: 'panel_bg_nine_slice',
+      w: 1480,
+      h: 910
+    })
+
     let content = this._make(GeneralSettings, Vec2.make(0, 0), {})
 
 
-    this.make(ScrollableContent, Vec2.make(220, 150), {
-      w: 1480,
-      h: 910,
+    this.make(ScrollableContent, Vec2.make(220, 180), {
+      w: 1450,
+      h: 850,
       content
     })
 
@@ -1929,7 +2098,7 @@ class Settings2 extends Play {
 
 }
 
-class MainMenu2 extends Play {
+export class MainMenu2 extends Play {
 
   _init() {
 
@@ -1961,6 +2130,7 @@ class MainMenu2 extends Play {
         solitaire_bg.play('solitaire')
       },
       on_click() {
+        scene_transition.next(SolitairePlay)
       }
     })
     let solitaire = this.make(Text, Vec2.make(card_x + 120 + 140, 350 + 250), {
@@ -2035,6 +2205,7 @@ class MainMenu2 extends Play {
     this.make(MainSideButton, Vec2.make(1300, side_y + side_h * 2), {
       text: 'settings',
       on_click() {
+        scene_transition.next(Settings2)
       }
     })
 
@@ -2080,12 +2251,12 @@ class SceneTransition extends Play {
     this.theme_target = Target.create(Game.width, Game.height)
 
     //this.current = this._make(CardShowcase, Vec2.zero, {})
-    // this.current = this._make(SolitairePlay, Vec2.zero, {})
     // this.current = this._make(MainMenu, Vec2.zero, {})
     //this.current = this._make(Statistics, Vec2.zero, {})
     //this.current = this._make(MainMenu2, Vec2.zero, {})
     //this.current = this._make(HowtoPlay2, Vec2.zero, {})
-    this.current = this._make(Settings2, Vec2.zero, {})
+    //this.current = this._make(Settings2, Vec2.zero, {})
+    this.current = this._make(SolitairePlay, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
     pallette.set_matrix(Mat3x2.create_scale_v(Game.v_screen))

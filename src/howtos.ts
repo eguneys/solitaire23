@@ -1,4 +1,4 @@
-let spider = ``
+let octopus = ``
 
 let solitaire = `
 Solitaire is played with a standard 52-card deck.
@@ -42,7 +42,7 @@ The scoring system is:
 - undo a move:          -30 points
 `
 
-let freecell = ``
+let fourtimes = ``
 
 
 let about = `
@@ -60,7 +60,7 @@ A fun way to pass time with 3 solitaire games. [Solitaire]"https://en.wikipedia.
 
 export const howtos = {
   about,
-  spider,
+  octopus,
   solitaire,
-  freecell
+  fourtimes
 }
