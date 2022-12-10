@@ -109,7 +109,8 @@ type ClickableData = {
   on_drag_end?: (e: Vec2) => void,
   on_drag?: (e: Vec2) => boolean,
   on_drop?: (e: Vec2) => void,
-  on_up?: (e: Vec2, right: boolean) => void
+  on_up?: (e: Vec2, right: boolean) => void,
+  on_wheel?: (d: number) => void
 }
 
 export class Clickable extends Play {
@@ -260,6 +261,18 @@ export class Clickable extends Play {
         let rect = self.rect
         if (rect.overlaps(point)) {
           return self.data.on_click?.() || false
+        }
+        return false
+      },
+      on_wheel(d: number, _e: EventPosition) {
+        if (!self.p_visible) {
+          return false
+        }
+        let e = _e.mul(Game.v_screen)
+        let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
+        let rect = self.rect
+        if (rect.overlaps(point)) {
+          return self.data.on_wheel?.(d) || false
         }
         return false
       }
@@ -1208,6 +1221,8 @@ class ScrollableContent extends Play {
     this.scroll_off = 0
     this.scroll_edge_off = 0
 
+    this.target_scroll_y = 0
+
     this.make(RectView, Vec2.make(this.data.w - 20 -8 , 8), {
       w: 20,
       h: this.data.h - 16,
@@ -1237,6 +1252,7 @@ class ScrollableContent extends Play {
       on_up(e: Vec2, right: boolean) {
         self.scroll_y += self.scroll_off
         self.scroll_off = 0
+        self.target_scroll_y = self.scroll_y
 
         if (self.scroll_y > 0) {
           self.scroll_edge_off = self.scroll_y
@@ -1258,11 +1274,22 @@ class ScrollableContent extends Play {
         }
 
         return true
+      },
+      on_wheel(d: number) {
+
+        self.target_scroll_y = self.scroll_y -d * 100
+
+        return true
       }
     })
   }
 
   _update() {
+
+    this.scroll_y = lerp(this.scroll_y, this.target_scroll_y, 0.4)
+
+    let edge = -(this.content as any).height + this.data.h
+    this.scroll_y = Math.max(Math.min(0, this.scroll_y), edge)
 
     this.scroll_edge_off = lerp(this.scroll_edge_off, 0, 0.2)
 
@@ -1675,12 +1702,14 @@ class DropdownListItem extends Play {
 
 class GeneralSettings extends Play {
 
+  height!: number
+
   _init() {
 
     let h = 220
     let language_setting = this.make(DropdownSetting, Vec2.make(0, 0), {
       name: 'language',
-      items: ['english', 'turkish', 'french', 'italian', 'german'],
+      items: ['english', 'türkçe', 'française', 'italiana', 'deutsch'],
       selected_index: 0,
       on_selected(i: number) {
         console.log(i)

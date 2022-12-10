@@ -5,7 +5,7 @@ export type MouseHooks = {
   _onDragMove?: (v: Vec2) => void, 
   _onDragEnd?: (v: Vec2) => void,
   _onContextMenu?: () => void,
-  _onWheel?: (_: number) => void
+  _onWheel?: (_: number, v: Vec2) => void
 }
 
 export type MouchEvent = MouseEvent | TouchEvent
@@ -46,7 +46,7 @@ export class Mouse {
     }
     const onWheel = (e: Event) => { 
       if (_onWheel) {
-        _onWheel(Math.sign((e as WheelEvent).deltaY)) 
+        _onWheel(Math.sign((e as WheelEvent).deltaY), ep(e as MouchEvent)) 
         e.preventDefault()
       }
     }

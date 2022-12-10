@@ -17,6 +17,7 @@ export type Hooks = {
   on_click?: (e: EventPosition, right: boolean) => boolean,
   on_click_begin?: (e: EventPosition, right: boolean) => boolean,
   on_drag?: (d: DragEvent, d0?: DragEvent) => boolean,
+  on_wheel?: (d: number, e: EventPosition) => boolean,
   on_context?: () => boolean
 }
 
@@ -67,6 +68,9 @@ class Input {
   }
   _on_context() {
     this.hooks.find(_ => _.on_context?.())
+  }
+  _on_wheel(d: number, e: EventPosition) {
+    this.hooks.find(_ => _.on_wheel?.(d, e))
   }
 
 
@@ -140,6 +144,9 @@ class Input {
         self._on_up(_drag.e, _drag._right, _drag.m)
         self._on_update = undefined
         _drag = undefined
+      },
+      _onWheel(d: number, e: Vec2) {
+        self._on_wheel?.(d, map_e(e))
       },
       _onContextMenu() {
       }
