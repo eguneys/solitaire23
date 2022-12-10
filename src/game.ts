@@ -23,6 +23,8 @@ import { ticks } from './shared'
 
 import Sound from './sound'
 
+import Trans, { languages } from './trans'
+
 type RectData = {
   w: number,
   h: number,
@@ -772,7 +774,7 @@ export class HowtoPlay extends Play {
 
     let self = this
     this.make(Navigation, Vec2.zero, {
-      route: 'how to play',
+      route: 'how_to_play',
       on_back() {
         scene_transition.next(MainMenu)
       }
@@ -999,6 +1001,80 @@ export class Navigation extends Play {
 
 }
 
+type TransTextData = {
+  width: number,
+  height: number,
+  no_trans?: true,
+  key: string,
+  center?: true,
+  color?: Color
+}
+export class TransText extends Play {
+
+  get data() {
+    return this._data as TransTextData
+  }
+
+  set color(c: Color) {
+    this._text_view.color = c
+  }
+
+
+  _text!: string
+
+  set text(_: string) {
+    this._text = _
+    this._text_view.text = this.text
+  }
+
+  get text() {
+    return this.data.no_trans ? this._text : Trans.key(this._text)
+  }
+
+  get size() {
+    let current_width = Content.sp_font.width_of(this.text)
+
+    let default_size = 128
+
+    let current_size_for_width = default_size * this.data.width / current_width
+
+    let current_height = Content.sp_font.height_of(this.text)
+    let current_size_for_height = default_size * this.data.height / current_height
+
+    return Math.min(current_size_for_width, current_size_for_height)
+  }
+
+  _text_view!: Text
+
+  _init() {
+
+
+    let center = this.data.center
+    let color = this.data.color
+    this._text = this.data.key
+
+    this._text_view = this.make(Text, Vec2.make(0, 0), {
+      size: this.size,
+      text: this.text,
+      center,
+      color,
+    })
+
+    if (!this.data.no_trans) {
+      this.dispose_trans = Trans.register(() => {
+        this._text_view.text = Trans.key(this._text)
+      })
+    }
+  }
+
+  dispose_trans?: () => void
+
+  _dispose() {
+
+    this.dispose_trans?.()
+  }
+}
+
 
 type TextData = {
   size?: number,
@@ -1208,6 +1284,8 @@ class ScrollableContent extends Play {
   scroll_off!: number
   scroll_edge_off!: number
 
+  target_scroll_y!: number
+
   thumb!: Play
 
   content_base_position!: Vec2
@@ -1379,16 +1457,18 @@ class MainSideButton extends Play {
 
     let bg = this.make(Anim, Vec2.zero, { name: 'main_settings_bg' })
 
-    let s = this.make(Text, Vec2.make(320, 86), { 
-      text: this.data.text, 
+    let s = this.make(TransText, Vec2.make(320, 86), { 
+      key: this.data.text, 
       center: true,
-      size: 64,
+      width: 400,
+      height: 100,
       color: Color.black
     })
-    let t = this.make(Text, Vec2.make(320, 86), { 
-      text: this.data.text, 
+    let t = this.make(TransText, Vec2.make(320, 86), { 
+      key: this.data.text, 
       center: true,
-      size: 64
+      width: 400,
+      height: 100,
     })
 
     let tpositiony = t.position.y
@@ -1448,7 +1528,7 @@ class HoverAnim extends Play {
 }
 
 type Navigation2Data = {
-  text: string,
+  key: string,
   on_back: () => void
 }
 
@@ -1466,9 +1546,10 @@ class Navigation2 extends Play {
       on_click() {
         self.data.on_back()
       }})
-    this.make(Text, Vec2.make(112, 54), {
-      text: this.data.text,
-      size: 72
+    this.make(TransText, Vec2.make(112, 54), {
+      key: this.data.key,
+      width: 400,
+      height: 96,
     })
   }
 }
@@ -1481,7 +1562,7 @@ class HowtoPlay2 extends Play {
 
 
     this.make(Navigation2, Vec2.zero, {
-      text: 'how to play',
+      key: 'how_to_play',
       on_back() {
         scene_transition.next(MainMenu2)
       }
@@ -1491,6 +1572,7 @@ class HowtoPlay2 extends Play {
 }
 
 type DropdownData = {
+  no_trans?: true,
   items: Array<string>
   selected_index: number,
   on_selected: (i: number) => void
@@ -1509,7 +1591,7 @@ class Dropdown extends Play {
     this.selected_text.text = this.data.items[v]
   }
 
-  selected_text!: Text
+  selected_text!: TransText
 
   _init() {
 
@@ -1517,8 +1599,9 @@ class Dropdown extends Play {
     let bg = this.make(Anim, Vec2.zero, {
       name: 'dropdown_bg'
     })
-    this.selected_text = this.make(Text, Vec2.make(32, 60), {
-      text: this.data.items[this.data.selected_index],
+    this.selected_text = this.make(TransText, Vec2.make(32, 60), {
+      no_trans: this.data.no_trans,
+      key: this.data.items[this.data.selected_index],
       size: 72
     })
 
@@ -1559,6 +1642,7 @@ class Dropdown extends Play {
 }
 
 type DropdownBoxData = {
+  no_trans?: true,
   items: Array<string>,
   selected_index: number,
   on_selected: (i: number) => void
@@ -1585,6 +1669,7 @@ class DropdownBox extends Play {
 
     let self = this
     let content = this._make(DropdownLongList, Vec2.make(0, 0), {
+      no_trans: this.data.no_trans,
       items: this.data.items,
       selected_index: this.data.selected_index,
       on_selected(i: number) {
@@ -1632,6 +1717,7 @@ class DropdownLongList extends Play {
     let self = this
     this.items = this.data.items.map((item, i) => {
       let _ = this.make(DropdownListItem, Vec2.make(0, y), {
+        no_trans: this.data.no_trans,
         item,
         on_selected() {
           self.selected_index = i
@@ -1655,6 +1741,7 @@ class DropdownLongList extends Play {
 
 
 type DropdownListItemData = {
+  no_trans?: true,
   item: string,
   on_selected: () => void
 }
@@ -1674,7 +1761,7 @@ class DropdownListItem extends Play {
   }
 
   bg!: RectView
-  text!: Text
+  text!: TransText
 
   _init() {
 
@@ -1684,9 +1771,11 @@ class DropdownListItem extends Play {
       color: Color.hex(0x315594)
     })
 
-    this.text = this.make(Text, Vec2.make(0, 0), {
-      text: this.data.item,
-      size: 96
+    this.text = this.make(TransText, Vec2.make(0, 0), {
+      no_trans: this.data.no_trans,
+      width: 340,
+      height: 140,
+      key: this.data.item,
     })
 
     let self = this
@@ -1708,16 +1797,17 @@ class GeneralSettings extends Play {
 
     let h = 220
     let language_setting = this.make(DropdownSetting, Vec2.make(0, 0), {
+      no_trans: true,
       name: 'language',
-      items: ['english', 'türkçe', 'française', 'italiana', 'deutsch'],
+      items: languages.map(_ => Trans.lang_key(_)),
       selected_index: 0,
       on_selected(i: number) {
-        console.log(i)
+        Trans.language = languages[i]
       }
     })
 
     let theme_setting = this.make(DropdownSetting, Vec2.make(0, h), {
-      name: 'color theme',
+      name: 'color_theme',
       items: ['pink', 'blue', 'orange'],
       selected_index: 0,
       on_selected(i: number) {
@@ -1737,7 +1827,7 @@ class GeneralSettings extends Play {
 
 
 
-    this.make_box(language_setting)
+    this.make_box(language_setting, true)
     this.make_box(theme_setting)
     this.make_box(sound_setting)
 
@@ -1745,13 +1835,15 @@ class GeneralSettings extends Play {
 
   }
 
-  make_box(setting: DropdownSetting) {
+  make_box(setting: DropdownSetting, no_trans?: true) {
     let box = this.make(DropdownBox, Vec2.make(
       setting.position.x + setting.dropdown.position.x,
       setting.position.y + setting.dropdown.position.y + 160), {
+        no_trans,
       items: setting.data.items,
       selected_index: setting.data.selected_index,
       on_selected(i: number) {
+        box.visible = false
         setting.dropdown.data.on_selected(i)
         setting.dropdown.selected_text.text = setting.data.items[i]
       }
@@ -1764,6 +1856,7 @@ class GeneralSettings extends Play {
 }
 
 type DropdownSettingData = {
+  no_trans?: true,
   name: string,
   items: Array<string>,
 
@@ -1786,12 +1879,14 @@ class DropdownSetting extends Play {
       color: Color.hex(0x202441)
     })
     
-    this.make(Text, Vec2.make(50, 60), {
-      text: this.data.name,
-      size: 96
+    this.make(TransText, Vec2.make(50, 60), {
+      key: this.data.name,
+      width: 500,
+      height: 200
     })
     let self = this
     this.dropdown = this.make(Dropdown, Vec2.make(720, 8), {
+      no_trans: this.data.no_trans,
       items: this.data.items,
       selected_index: this.data.selected_index,
       on_selected(i: number) {
@@ -1809,7 +1904,7 @@ class Settings2 extends Play {
 
 
     this.make(Navigation2, Vec2.zero, {
-      text: 'settings',
+      key: 'settings',
       on_back() {
         scene_transition.next(MainMenu2)
       }
@@ -1921,7 +2016,7 @@ class MainMenu2 extends Play {
     let side_h = 180
     let side_y = 200
     this.make(MainSideButton, Vec2.make(1300, side_y), {
-      text: 'how to play',
+      text: 'how_to_play',
       on_click() {
         scene_transition.next(HowtoPlay2)
       }

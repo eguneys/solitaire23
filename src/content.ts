@@ -12,7 +12,6 @@ import content_page0_json from '../content/out_0.json'
 import content_font0 from '../content/fonts/out_0.png'
 import content_font0_json from '../content/fonts/out_0.json'
 
-
 function load_image(path: string): Promise<HTMLImageElement> {
   return new Promise(resolve => {
     let res = new Image()
