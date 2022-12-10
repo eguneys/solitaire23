@@ -1881,7 +1881,7 @@ class DropdownSetting extends Play {
     
     this.make(TransText, Vec2.make(50, 60), {
       key: this.data.name,
-      width: 500,
+      width: 420,
       height: 200
     })
     let self = this

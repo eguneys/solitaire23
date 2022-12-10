@@ -1,9 +1,11 @@
 import en from '../content/trans/en.trans?raw'
 import tr from '../content/trans/tr.trans?raw'
+import fr from '../content/trans/fr.trans?raw'
 
 let _trans = {
   en,
-  tr
+  tr,
+  fr
 }
 
 export type Language = keyof typeof _trans
