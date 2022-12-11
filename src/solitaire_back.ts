@@ -3,6 +3,7 @@ import { DragPov } from 'lsolitaire'
 import { SolitaireHooks } from './hooks'
 import { SolitaireGame } from './solitaire_game'
 import { FlipFront } from 'lsolitaire'
+import SolitaireStore, { SolitaireGame as StoreSolitaireGame } from './store'
 
 export async function make_solitaire_back(game: SolitaireGame) {
 
@@ -21,10 +22,14 @@ export async function make_solitaire_back(game: SolitaireGame) {
 
 class SolitaireBack {
 
-  solitaire: Solitaire
+  game: StoreSolitaireGame
+
+  get solitaire() {
+    return this.game.solitaire
+  }
 
   constructor() {
-    this.solitaire = Solitaire.make(Cards.deck)
+    this.game = SolitaireStore.current_game
   }
 
   async get_pov() {
@@ -42,7 +47,6 @@ class SolitaireBack {
   async drop_tableu(drag: DragPov, tableu: number) {
     return this.solitaire.drop_tableu(drag, tableu)
   }
-
 
 }
 

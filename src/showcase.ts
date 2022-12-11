@@ -422,6 +422,7 @@ export class Card extends Play {
 
 
 
+let i = 0
 export class Cards extends Play {
 
   frees!: Array<Card>
