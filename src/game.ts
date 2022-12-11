@@ -613,7 +613,17 @@ class ScrollableListLongContent<T> extends Play {
 
 }
 
+type About2Data = {
+  on_back?: PalyType<Play>
+}
+
 export class About2 extends Play {
+
+
+  get data() {
+    return this._data as About2Data
+  }
+
   _init() {
 
 
@@ -625,7 +635,7 @@ export class About2 extends Play {
     this.make(Navigation2, Vec2.zero, {
       key: 'about',
       on_back() {
-        scene_transition.next(MainMenu2)
+        scene_transition.next(self.data.on_back ?? MainMenu2)
       }
     })
 
@@ -1491,17 +1501,30 @@ class Navigation2 extends Play {
   }
 }
 
+
+type HowtoPlay2Data = {
+  selected_index?: number,
+  on_back?: PlayType<Play>
+}
+
 export class HowtoPlay2 extends Play {
 
+  get data() {
+    return this._data as HowtoPlay2Data
+  }
+
   _init() {
+
+    let selected_index = this.data.selected_index ?? 0
 
     this.make(RectView, Vec2.zero, { w: 1920, h: 1080, color: Color.hex(0xb4beb4)})
 
 
+    let self = this
     this.make(Navigation2, Vec2.zero, {
       key: 'how_to_play',
       on_back() {
-        scene_transition.next(MainMenu2)
+        scene_transition.next(self.data.on_back ?? MainMenu2)
       }
     })
 
@@ -1573,7 +1596,8 @@ export class HowtoPlay2 extends Play {
     let panel = this.make(TabPanel, Vec2.make(20, 180), {
       w: 1860,
       h: 860,
-      panels
+      panels,
+      selected_index
     })
 
 
@@ -1582,7 +1606,7 @@ export class HowtoPlay2 extends Play {
 
     this.make(Tabs, Vec2.make(600, 8), {
       tabs,
-      selected_index: 0,
+      selected_index,
       on_selected_index(i: number) {
         panel.selected_index = i
       }
@@ -1973,17 +1997,29 @@ class DropdownSetting extends Play {
   }
 }
 
+type Settings2Data = {
+  selected_index?: number,
+  on_back?: PlayType<Play>
+}
+
 export class Settings2 extends Play {
 
+  get data() {
+    return this._data as Settings2Data
+  }
+
   _init() {
+
+    let selected_index = this.data.selected_index ?? 0
 
     this.make(RectView, Vec2.zero, { w: 1920, h: 1080, color: Color.hex(0xb4beb4)})
 
 
+    let self = this
     this.make(Navigation2, Vec2.zero, {
       key: 'settings',
       on_back() {
-        scene_transition.next(MainMenu2)
+        scene_transition.next(self.data.on_back ?? MainMenu2)
       }
     })
 
@@ -2021,7 +2057,7 @@ export class Settings2 extends Play {
 
     this.make(Tabs, Vec2.make(600, 8), {
       tabs,
-      selected_index: 0,
+      selected_index,
       on_selected_index(i: number) {
         panel.selected_index = i
       }
@@ -2081,7 +2117,7 @@ export class Settings2 extends Play {
       w: 1050,
       h: 850,
       panels,
-      selected_index: 0
+      selected_index
     })
 
 

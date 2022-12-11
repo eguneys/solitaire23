@@ -812,19 +812,27 @@ class SideBar extends Play {
     this.make(SideBarItem, Vec2.make(x, y + h * 2), {
       text: 'settings',
       on_click() {
-        scene_transition.next(Settings2)
+        scene_transition.next(Settings2, Vec2.zero, {
+          selected_index: 1,
+          on_back: SolitairePlay
+        })
       }
     })
     this.make(SideBarItem, Vec2.make(x, y + h * 3), {
       text: 'how_to_play',
       on_click() {
-        scene_transition.next(HowtoPlay2)
+        scene_transition.next(HowtoPlay2, Vec2.zero, {
+          selected_index: 0,
+          on_back: SolitairePlay
+        })
       }
     })
     this.make(SideBarItem, Vec2.make(x, y + h * 4), {
       text: 'about',
       on_click() {
-        scene_transition.next(About2)
+        scene_transition.next(About2, Vec2.zero, {
+          on_back: SolitairePlay
+        })
       }
     })
   }
