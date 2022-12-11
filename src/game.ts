@@ -123,17 +123,19 @@ export class Clickable extends Play {
   }
 
   get width() {
-    return this.data.rect.w
+    return this._scaled_rect.w
   }
 
   get height() {
-    return this.data.rect.h
+    return this._scaled_rect.h
   }
+
+  _scaled_rect!: Rect
 
   get _rect() {
     return this.data.abs ? 
       Rect.make(this.position.x, this.position.y, this.width, this.height)
-      : Rect.make(this.g_position.x, this.g_position.y, this.width, this.height)
+      : this._scaled_rect
   }
 
   get rect() {
@@ -146,6 +148,8 @@ export class Clickable extends Play {
   }
 
   _init() {
+
+    this._scaled_rect = this.data.rect
     let _dragging = false
     let _hovering = false
     let self = this
@@ -285,6 +289,7 @@ export class Clickable extends Play {
   _draw() {
     batch.push_matrix(Mat3x2.create_translation(this.position))
     this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
+    this._scaled_rect = Rect.transform(this.data.rect, batch.m_matrix)
     if (this.data.debug) {
       batch.rect(Rect.make(0, 0, this.width, this.height), Color.hex(0x00ff00))
     }
@@ -779,9 +784,12 @@ class Tabs extends Play {
 
   _init() {
 
-    this.selected_index = this.data.selected_index
+    this._selected_index = this.data.selected_index
+    this.data.tabs.forEach((_, _i) => _.set_active(this._selected_index === _i))
 
-    let width = this.data.tabs.reduce((a, b) => a + (b as Tab).width, 0)
+
+    let scale = this.data.tabs.length === 4 ? 0.63 : 1
+    let width = this.data.tabs.reduce((a, b) => a + (b as Tab).width * scale, 0)
     this.make(RectView, Vec2.make(10, 130), {
       w: width,
       h: 10,
@@ -789,6 +797,13 @@ class Tabs extends Play {
     })
 
     this.data.tabs.forEach(_ => _.parent = this)
+
+    this.data.tabs.forEach(_ => {
+      if (this.data.tabs.length === 4) {
+        _.scale = Vec2.one.scale(0.6)
+        _.position.y += 50
+      }
+    })
   }
 
   _update() {
@@ -1097,7 +1112,7 @@ class Tab extends Play {
     })
     this.anim = anim
 
-    this.make(TransText, Vec2.make(this.data.w/2, 48), {
+    this.make(TransText, Vec2.make(this.width/2, this.height/2), {
       no_trans: this.data.no_trans,
       width: this.width - 80,
       height: this.height,
@@ -1117,7 +1132,7 @@ class Tab extends Play {
         anim.play(self._active ? 'active' : 'idle')
       },
       on_click() {
-        (self.parent as Tabs).on_click(self)
+        ;(self.parent as Tabs).on_click(self)
       }
     })
   }
@@ -1155,13 +1170,7 @@ class TabPanel extends Play {
   }
 
   _init() {
-
     this.selected_index = this.data.selected_index
-    this.make(Nine, Vec2.zero, {
-      name: 'panel_bg_nine_slice',
-      w: this.data.w,
-      h: this.data.h
-    })
   }
 
   _update() {
@@ -1802,6 +1811,59 @@ class DropdownListItem extends Play {
   }
 }
 
+class SolitaireSettings extends Play {
+
+  height!: number
+
+  _init() {
+
+    let h = 220
+    let turning_cards_setting = this.make(DropdownSetting, Vec2.make(40, 0), {
+      name: 'turning_cards',
+      items: ['three_cards', 'one_card'],
+      selected_index: 0,
+      on_selected(i: number) {
+      }
+    })
+
+    let turning_limit_setting = this.make(DropdownSetting, Vec2.make(40, h * 1), {
+      name: 'turning_limit',
+      items: ['no_limit', 'three_passes', 'one_pass'],
+      selected_index: 0,
+      on_selected(i: number) {
+      }
+    })
+
+
+
+    this.make_box(turning_cards_setting)
+    this.make_box(turning_limit_setting)
+
+
+    this.height = h * 3 + 500
+  }
+
+
+  make_box(setting: DropdownSetting, no_trans?: true) {
+    let box = this.make(DropdownBox, Vec2.make(
+      setting.position.x + setting.dropdown.position.x,
+      setting.position.y + setting.dropdown.position.y + 160), {
+        no_trans,
+      items: setting.data.items,
+      selected_index: setting.data.selected_index,
+      on_selected(i: number) {
+        box.visible = false
+        setting.dropdown.data.on_selected(i)
+        setting.dropdown.selected_text.text = setting.data.items[i]
+      }
+    })
+    setting.dropdown.box = box
+    box.visible = false
+  }
+
+
+}
+
 class GeneralSettings extends Play {
 
   height!: number
@@ -1931,15 +1993,96 @@ export class Settings2 extends Play {
       h: 910
     })
 
+    let w = 1000 / 4
+    let tw = w * 1.6
+    let tabs = [
+      this._make(Tab, Vec2.make(2, 2), {
+        text: 'general',
+        w: tw
+      }),
+      this._make(Tab, Vec2.make(2 + w + 4, 2), {
+        no_trans: true,
+        text: 'solitaire',
+        w: tw
+      }),
+      this._make(Tab, Vec2.make(2 + (w + 4) * 2, 2), {
+        no_trans: true,
+        text: 'fourtimes',
+        w: tw
+      }),
+      this._make(Tab, Vec2.make(2 + (w + 4) * 3, 2), {
+        no_trans: true,
+        text: 'octopus',
+        w: tw
+      })
+    ]
+
+    let panel: TabPanel
+
+    this.make(Tabs, Vec2.make(600, 8), {
+      tabs,
+      selected_index: 0,
+      on_selected_index(i: number) {
+        panel.selected_index = i
+      }
+    })
+
+
     let content = this._make(GeneralSettings, Vec2.make(0, 0), {})
 
 
-    this.make(ScrollableContent, Vec2.make(220, 180), {
+    let general = this._make(ScrollableContent, Vec2.make(0, 0), {
       w: 1450,
       h: 850,
       content
     })
 
+
+
+    content = this._make(SolitaireSettings, Vec2.make(0, 0), {})
+
+
+    let solitaire = this._make(ScrollableContent, Vec2.make(0, 0), {
+      w: 1450,
+      h: 850,
+      content
+    })
+
+
+    content = this._make(GeneralSettings, Vec2.make(0, 0), {})
+
+
+    let fourtimes = this._make(ScrollableContent, Vec2.make(0, 0), {
+      w: 1450,
+      h: 850,
+      content
+    })
+
+
+    content = this._make(GeneralSettings, Vec2.make(0, 0), {})
+
+
+    let octopus = this._make(ScrollableContent, Vec2.make(0, 0), {
+      w: 1450,
+      h: 850,
+      content
+    })
+
+
+
+    let panels = [
+      general,
+      solitaire,
+      fourtimes,
+      octopus
+    ]
+
+    panel = this.make(TabPanel, Vec2.make(220, 180), {
+      w: 1050,
+      h: 850,
+      panels,
+      selected_index: 0
+    })
 
 
   }
@@ -2104,8 +2247,8 @@ class SceneTransition extends Play {
     //this.current = this._make(Statistics, Vec2.zero, {})
     // this.current = this._make(MainMenu2, Vec2.zero, {})
     //this.current = this._make(HowtoPlay2, Vec2.zero, {})
-    //this.current = this._make(Settings2, Vec2.zero, {})
-    this.current = this._make(SolitairePlay, Vec2.zero, {})
+    this.current = this._make(Settings2, Vec2.zero, {})
+    //this.current = this._make(SolitairePlay, Vec2.zero, {})
     //this.current = this._make(About2, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
