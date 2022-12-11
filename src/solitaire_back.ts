@@ -6,16 +6,17 @@ import { FlipFront } from 'lsolitaire'
 import SolitaireStore, { SolitaireGame as StoreSolitaireGame } from './store'
 
 export async function make_solitaire_back(game: SolitaireGame) {
-
-
   let back = new SolitaireBack()
-
   let pov = await back.get_pov()
 
   return {
     pov,
     cmd(ctor: CommandType, data?: any) {
       new ctor(back, pov, game)._set_data(data).send()
+    },
+    dispose() {
+      SolitaireStore.save_current(back.game)
+
     }
   }
 }

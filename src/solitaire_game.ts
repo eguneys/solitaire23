@@ -42,6 +42,31 @@ const reverse_forEach = <A>(a: Array<A>, f: (_: A) => void) => {
   }
 }
 
+type RecycleData = {
+  on_recycle: () => void
+}
+
+class RecycleView extends Play {
+
+  get data() {
+    return this._data as RecycleData
+  }
+
+  _init() {
+
+
+
+    let self = this
+    this.make(Clickable, Vec2.make(20, 20), {
+      rect: Rect.make(0, 0, 140, 160),
+      on_click() {
+        self.data.on_recycle()
+      }
+    })
+  }
+
+}
+
 type StockData = {
   on_hit: () => void,
   on_recycle: () => void
@@ -52,6 +77,22 @@ class Stock extends Play {
   get data() {
     return this._data as StockData
   }
+
+  get can_recycle() {
+    return this.stock.length === 0
+  }
+
+  add_waste_hidden(cards: Array<Card>) {
+    this.waste_hidden.add_cards(cards)
+  }
+
+
+
+  add_waste(cards: Array<Card>) {
+    this.waste.add_cards(cards)
+  }
+
+
 
   add_stocks(cards: Array<Card>) {
     this.stock.add_cards(cards)
@@ -69,23 +110,19 @@ class Stock extends Play {
     this.waste.add_cards(cards)
 
     reverse_forEach(this.waste_hidden.cards, _ => _.send_back())
-
-    if (this.stock.length === 0) {
-      this.recycle_anim.visible = true
-    }
   }
 
   recycle() {
-    let cards = [
-      ...this.waste_hidden.remove_cards(this.waste_hidden.length),
-      ...this.waste.remove_cards(this.waste.length)]
+
+    let waste = this.waste.remove_cards(this.waste.length)
+    this.waste_hidden.add_cards(waste)
+
+    let cards = this.waste_hidden.remove_cards(this.waste_hidden.length)
 
     cards.forEach(card => card.flip_back())
     cards.forEach(card => card.send_front())
 
     this.stock.add_cards(cards)
-    this.recycle_anim.visible = false
-
   }
 
   stock!: Stack
@@ -93,17 +130,11 @@ class Stock extends Play {
 
   waste_hidden!: Stack
 
-  recycle_anim!: Anim
-
   _init() {
     this.stock = this.make(Stack, Vec2.make(0, 0), { h: 1 })
 
     this.waste = this.make(Stack, Vec2.make(0, 260), {})
     this.waste_hidden = this.make(Stack, Vec2.make(0, 300), { h: 0 })
-
-    this.recycle_anim = this.make(Anim, Vec2.make(12, 12), { name: 'recycle' })
-    this.recycle_anim.origin = Vec2.make(120, 150)
-    this.recycle_anim.visible = false
 
     let self = this
     this.make(Clickable, Vec2.make(-64, -80), {
@@ -111,16 +142,8 @@ class Stock extends Play {
       on_click() {
         if (self.stock.length > 0) {
           self.data.on_hit()
-        } else {
-          self.data.on_recycle()
         }
       },
-      on_hover() {
-        self.recycle_anim.play('hover')
-      },
-      on_hover_end() {
-        self.recycle_anim.play('idle')
-      }
     })
   }
 
@@ -143,10 +166,20 @@ export class SolitaireGame extends Play {
   dragging?: DragStack
   drag_source?: DragSource
 
+  on_dispose_back!: () => void
+
+  recycle_view!: RecycleView
+  cmd!: (ctor: CommandType, data?: any) => void
+
+  _dispose() {
+    this.on_dispose_back()
+  }
 
   _init() {
 
-    make_solitaire_back(this).then(({pov, cmd}) => {
+    make_solitaire_back(this).then(({pov, cmd, dispose }) => {
+
+      this.on_dispose_back = dispose
 
       let self = this
       let c = this.make(Clickable, Vec2.zero, {
@@ -175,6 +208,15 @@ export class SolitaireGame extends Play {
         }
       })
 
+      this.recycle_view = this.make(RecycleView, Vec2.make(40, 200), {
+      
+        on_recycle() {
+          if (self.stock.can_recycle) {
+            self.cmd(Recycle)
+          }
+        }
+      })
+
       this.cards = this.make(Cards, Vec2.zero, {})
 
       this._init_pov(pov, cmd)
@@ -186,6 +228,7 @@ export class SolitaireGame extends Play {
   }
 
   _init_pov(pov: SolitairePov, cmd: (ctor: CommandType, data?: any) => void) {
+    this.cmd = cmd
     let stock_x = 120,
       stock_y = 320
 
@@ -193,15 +236,18 @@ export class SolitaireGame extends Play {
     let stock = this.make(Stock, Vec2.make(stock_x, stock_y), { 
       on_hit() {
         cmd(HitStock)
-      },
-      on_recycle() {
-        cmd(Recycle)
       }
     })
     this.stock = stock
 
     stock.add_stocks(pov.stock.stock.cards.map(card =>
                                                this.cards.borrow()))
+
+    stock.add_waste_hidden(pov.stock.waste_hidden.cards.map(card =>
+                                                            this.cards.borrow()))
+    
+    stock.add_waste(pov.stock.waste.cards.map(card =>
+                                              this.cards.borrow()))
 
     let tableu_x = 350,
       tableu_y = 180,

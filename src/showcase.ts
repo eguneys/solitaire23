@@ -373,7 +373,7 @@ export class Card extends Play {
         this._will_flip_back = false
         this.shadow.visible = false
         this.decoration.visible = false
-        this.anim.play('flip', () => {
+        this.anim.play_now('flip', () => {
           this.facing = -1
           this.anim.play('back_idle')
           this.shadow.visible = true
@@ -386,7 +386,7 @@ export class Card extends Play {
         this._will_flip_front = false
         this.shadow.visible = false
         this.decoration.visible = false
-        this.anim.play('back_flip', () => {
+        this.anim.play_now('back_flip', () => {
           this.facing = 1
           this.anim.play(this.waiting ? 'wait' : 'idle')
           this.shadow.visible = true
@@ -400,11 +400,13 @@ export class Card extends Play {
   }
 
   flip_back() {
-    this._will_flip_back = this.facing !== -1
+    this._will_flip_front = false
+    this._will_flip_back = this.facing !== -1 || this.anim._animation === 'back_flip'
   }
 
   flip_front() {
-    this._will_flip_front = this.facing !== 1
+    this._will_flip_back = false
+    this._will_flip_front = this.facing !== 1 || this.anim._animation === 'flip'
   }
 
   _draw_shadow(batch: Batch) {
@@ -636,7 +638,7 @@ export class Tableu extends Play {
         self.data.on_front_drag(l - i, e)
       })
     })
-    this.fronts.top_card.bind_drop(() => {
+    this.fronts.top_card?.bind_drop(() => {
       self.data.on_front_drop()
     })
   }
