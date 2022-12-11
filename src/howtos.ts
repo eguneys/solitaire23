@@ -105,6 +105,8 @@ A fun way to pass time with 3 solitaire games. [Solitaire]"https://en.wikipedia.
 - Consider donating at [Patreon]"https://www.patreon.com/eguneys".
 
 - For business inquiries please contact me on twitter [@eguneys]"https://twitter.com/eguneys?lang=en".
+
+- Contribute translating at [Translation]"https://github.com/eguneys/solitaire23/TRANSLATE.md"
 `
 
 export const howtos = {
