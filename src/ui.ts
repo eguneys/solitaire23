@@ -16,7 +16,7 @@ import { bg1, link_color, Play, PlayType} from './play'
 import { ticks } from './shared'
 import { Anim } from './anim'
 
-import { TransText, RectView, Clickable, Background, MainMenu } from './game'
+import { TransText, RectView, Clickable, Background } from './game'
 
 type ButtonData = {
   text: string,

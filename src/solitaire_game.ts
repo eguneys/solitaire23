@@ -22,7 +22,7 @@ import { ticks } from './shared'
 import { RNG, random, int_random, v_random, v_random_h, v_screen, arr_random } from './util'
 import { Tween } from './tween'
 
-import { Text, RectView, Clickable, Background, MainMenu } from './game'
+import { Text, RectView, Clickable, Background } from './game'
   
 import { SolitaireHooks } from './hooks'
 import { make_solitaire_back } from './solitaire_back'

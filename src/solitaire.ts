@@ -16,10 +16,8 @@ import { bg1, link_color, Play, PlayType} from './play'
 import { Anim } from './anim'
 
 import { TransText, Text, RectView, Clickable, Background, MainMenu2 } from './game'
-import { Settings2, HowtoPlay2 } from './game'
+import { About2, Settings2, HowtoPlay2 } from './game'
 import { scene_transition }from './game'
-
-import { HowtoPlay, Settings, About } from './game'
 
 import { n_seven, card_sort_key, Cards, Card as OCard, SolitairePov, Solitaire } from 'lsolitaire'
 
@@ -826,7 +824,7 @@ class SideBar extends Play {
     this.make(SideBarItem, Vec2.make(x, y + h * 4), {
       text: 'about',
       on_click() {
-        scene_transition.next(About)
+        scene_transition.next(About2)
       }
     })
   }

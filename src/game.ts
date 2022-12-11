@@ -345,107 +345,6 @@ class MainSideBarItem extends Play {
   }
 }
 
-class MainSideBar extends Play {
-
-  _init() {
-
-    this.make(RectView, Vec2.make(0, 0), {
-      w: 580,
-      h: 900,
-      color: Color.black
-    })
-
-    let _
-    let tabs = [ ]
-
-    _ = this._make(MainSideBarItem, Vec2.make(0, 0), { icon: 'how to play', next: HowtoPlay })
-    tabs.push(_)
-    _ = this._make(MainSideBarItem, Vec2.make(0, _.height), { icon: 'settings', next: Settings })
-    tabs.push(_)
-    _ = this._make(MainSideBarItem, Vec2.make(0, _.height * 2), { icon: 'statistics', next: Statistics })
-    tabs.push(_)
-    _ = this._make(MainSideBarItem, Vec2.make(0, _.height * 3), { icon: 'about', next: About })
-    tabs.push(_)
-
-    this.make(Tabs, Vec2.make(4, 4), {
-      tabs
-    })
-
-
-  }
-}
-
-export class MainMenu extends Play {
-  _init() {
-
-    this.make(Background, Vec2.zero, undefined)
-
-    this.make(MainTitle, Vec2.make(6, 6), {})
-
-    this.make(MainSideBar, Vec2.make(1320, 100), {})
-
-    this.make(MainCards, Vec2.make(80, 260), {})
-
-  }
-}
-
-
-class MainCards extends Play {
-
-
-  _init() {
-    let w = 380
-    this.make(MainCard, Vec2.make(0, 0), {
-      text: 'solitaire'
-    })
-    this.make(MainCard, Vec2.make(w, 0), {
-      text: 'freecell'
-    })
-    this.make(MainCard, Vec2.make(w * 2, 0), {
-      text: 'spider'
-    })
-  }
-
-}
-
-type MainCardData = {
-  text: string
-}
-
-class MainCard extends Play {
-
-  get data() {
-    return this._data as MainCardData
-  }
-
-  _init() {
-
-    this.make(Anim, Vec2.make(0, 0), {
-      name: 'main_card_bg'
-    })
-
-    let text = this.make(Text, Vec2.make(-450, 200), {
-      text: this.data.text,
-      rotation: - Math.PI * 0.5,
-      color: Color.black
-    })
-
-
-    this.make(Clickable, Vec2.make(60, 64), {
-      rect: Rect.make(0, 0, 300, 420),
-      on_click() {
-        scene_transition.next(SolitairePlay)
-      },
-      on_hover() {
-        text.color = Color.red
-      },
-      on_hover_end() {
-        text.color = Color.black
-      }
-    })
-  }
-}
-
 
 class Statistics extends Play {
   _init() {
@@ -456,7 +355,7 @@ class Statistics extends Play {
     this.make(Navigation, Vec2.zero, {
       route: 'statistics',
       on_back() {
-        scene_transition.next(MainMenu)
+        //scene_transition.next(MainMenu)
       }
     })
 
@@ -710,114 +609,44 @@ class ScrollableListLongContent<T> extends Play {
 
 }
 
-
-export class Settings extends Play {
+export class About2 extends Play {
   _init() {
 
-    this.make(Background, Vec2.zero, undefined)
+
+    this.make(RectView, Vec2.zero, { w: 1920, h: 1080, color: Color.hex(0xb4beb4)})
+
+
 
     let self = this
-    this.make(Navigation, Vec2.zero, {
-      route: 'settings',
+    this.make(Navigation2, Vec2.zero, {
+      key: 'about',
       on_back() {
-        scene_transition.next(MainMenu)
+        scene_transition.next(MainMenu2)
       }
     })
 
-
-    let content = this._make(RectView, Vec2.make(0, 0), {
-      w: 100,
-      h: 100
+    let w = 1880
+    let h = 940
+    this.make(Nine, Vec2.make(20, 120), {
+      name: 'panel_bg_nine_slice',
+      w: w,
+      h: h
     })
-
-    this.make(ScrollableContent, Vec2.make(20, 120), {
-      w: 1880,
-      h: 940,
-      content
-    })
-
-
-  }
-}
-export class About extends Play {
-  _init() {
-
-    this.make(Background, Vec2.zero, undefined)
-
-    let self = this
-    this.make(Navigation, Vec2.zero, {
-      route: 'about',
-      on_back() {
-        scene_transition.next(MainMenu)
-      }
-    })
-
 
     let content = this._make(LongHyperText, Vec2.make(0, 0), {
       width: 1880 - 80,
       content: howtos['about']
     })
 
-    this.make(ScrollableContent, Vec2.make(20, 120), {
-      w: 1880,
-      h: 940,
+    this.make(ScrollableContent, Vec2.make(60, 160), {
+      w: w - 100,
+      h: h - 80,
       content
     })
 
 
   }
 }
-
-export class HowtoPlay extends Play {
-
-  _init() {
-
-    this.make(Background, Vec2.zero, undefined)
-
-    let self = this
-    this.make(Navigation, Vec2.zero, {
-      route: 'how_to_play',
-      on_back() {
-        scene_transition.next(MainMenu)
-      }
-    })
-
-    let w = 320
-    let tabs = [
-      this._make(Tab, Vec2.make(2, 2), {
-        text: 'solitaire',
-        w
-      }),
-      this._make(Tab, Vec2.make(2 + w + 4, 2), {
-        text: 'freecell',
-        w
-      }),
-      this._make(Tab, Vec2.make(2 + (w + 4) *2, 2), {
-        text: 'spider',
-        w
-      })
-    ]
-
-    this.make(Tabs, Vec2.make(800, 8), {
-      tabs
-    })
-
-
-
-    let content = this._make(LongHyperText, Vec2.make(0, 0), {
-      width: 1880 - 80,
-      content: howtos['solitaire']
-    })
-
-    this.make(ScrollableContent, Vec2.make(20, 120), {
-      w: 1880,
-      h: 940,
-      content
-    })
-
-  }
-}
-
 
 type LongHyperTextData = {
   width: number,
@@ -1063,6 +892,7 @@ export class TransText extends Play {
   set text(_: string) {
     this._text = _
     this._text_view.text = this.text
+    this._text_view.size = this.size
   }
 
   get text() {
@@ -1101,6 +931,7 @@ export class TransText extends Play {
     if (!this.data.no_trans) {
       this.dispose_trans = Trans.register(() => {
         this._text_view.text = Trans.key(this._text)
+        this._text_view.size = this.size
       })
     }
   }
@@ -1148,8 +979,13 @@ export class Text extends Play {
     this.data.text = text
   }
 
+  _size!: number
   get size() {
-    return this.data.size ?? 128
+    return this._size
+  }
+
+  set size(size: number) {
+    this._size = size
   }
 
   get width() {
@@ -1161,6 +997,7 @@ export class Text extends Play {
   } 
 
   _init() {
+    this._size = this.data.size ?? 128
     this.rotation = this.data.rotation ?? 0
     this.origin = this.data.center ? Vec2.make(this.width / 2, 0) : Vec2.zero
   }
@@ -2215,6 +2052,7 @@ export class MainMenu2 extends Play {
     this.make(MainSideButton, Vec2.make(1300, side_y + side_h * 3), {
       text: 'about',
       on_click() {
+        scene_transition.next(About2)
       }
     })
 
@@ -2259,7 +2097,8 @@ class SceneTransition extends Play {
     //this.current = this._make(MainMenu2, Vec2.zero, {})
     //this.current = this._make(HowtoPlay2, Vec2.zero, {})
     //this.current = this._make(Settings2, Vec2.zero, {})
-    this.current = this._make(SolitairePlay, Vec2.zero, {})
+    //this.current = this._make(SolitairePlay, Vec2.zero, {})
+    this.current = this._make(About2, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
     pallette.set_matrix(Mat3x2.create_scale_v(Game.v_screen))

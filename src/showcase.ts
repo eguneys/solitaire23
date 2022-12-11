@@ -17,7 +17,7 @@ import { ticks } from './shared'
 import { Anim } from './anim'
 import { Tween } from './tween'
 
-import { Text, RectView, Clickable, Background, MainMenu } from './game'
+import { Text, RectView, Clickable, Background } from './game'
 import { Button } from './ui'
 import { Suit, Cards as OCards, Card as OCard, CardPov, hidden_card } from 'lsolitaire'
 
