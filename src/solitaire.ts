@@ -30,225 +30,14 @@ import { SolitaireGame } from './solitaire_game'
 import { Button } from './ui'
 
 import SolitaireStore from './store'
-
-type CardData = {
-  card?: OCard,
-  back?: true
-}
-class Card extends Play {
-
-  get data() {
-    return this._data as CardData
-  }
-
-  flip_back() {
-    this.anim.play('flip', () => {
-      this.anim.play('back')
-    })
-  }
-
-  flip_front() {
-    this.anim.play('flip', () => {
-      this.anim.play('idle')
-    }, true)
-  }
-
-  get easing() {
-    return (!this._tx || this._tweens.find(_ => _[0] === this._tx))
-  }
-
-  ease_rotation(r: number, duration: number = ticks.half) {
-    this._tr = this.tween_single(this._tr, [this.rotation, r], (v) => this.rotation = v, duration)
-  }
-
-  anim!: Anim
-
-  _tr?: Tween
-  _tx?: Tween
-  _ty?: Tween
-
-  ease_position(v: Vec2, duration: number = ticks.half) {
-    this._tx = this.tween_single(this._tx, [this.position.x, v.x], (v) => {
-      this.position.x = v
-    }, duration)
-
-    this._ty = this.tween_single(this._ty, [this.position.y, v.y], (v) => {
-      this.position.y = v
-    }, duration)
-  }
-
-  _init() {
-     this.anim = this.make(Anim, Vec2.zero, { name: 'card' })
-     this.anim.origin = Vec2.make(102, 122.5)
-     if (this.data.back) {
-       this.anim.play('back')
-     } else {
-       this.anim.play('idle')
-     }
-
-     let self = this
-     this.make(Clickable, Vec2.make(8, 8), {
-       rect: Rect.make(0, 0, 180, 220),
-       on_hover() {
-       },
-       on_hover_end() {
-       },
-       on_click() {
-       }
-     })
-  }
-}
-
-type StackData = {
-  h?: number
-}
-class Stack extends Play {
-
-  get data() {
-    return this._data as StackData
-  }
-
-  get settled() {
-    return this._cards.every(_ => !_.easing)
-  }
-
-  set_position(v: Vec2) {
-    this.position.x = v.x
-    this.position.y = v.y
-    this._position_cards()
-  }
-
-  add_cards(cards: Array<Card>) {
-    this._cards.push(...cards)
-    this._position_cards()
-  }
-
-  pop_card() {
-    return this._cards.pop()
-  }
-
-  _cards!: Array<Card>
-
-  _init() {
-    this._cards = []
-  }
-
-  get h() {
-    return this.data.h || 66
-  }
-
-  get top_next_position() {
-    return Vec2.make(this.position.x, this.position.y + this.h * this._cards.length)
-  }
-
-  _position_cards() {
-
-    let { h } = this
-
-    this._cards.forEach((_, i) => 
-                        _.ease_position(
-                          Vec2.make(this.position.x, this.position.y + h * i)))
-  }
-
-  _update() {
-    this._cards.forEach(_ => _.update())
-  }
-
-  _draw(batch: Batch) {
-    this._cards.forEach(_ => _.draw(batch))
-  }
-}
-
-type StockData = {
-  stock_position: Vec2
-}
-class Stock extends Play {
-  get data() {
-    return this._data as StockData
-  }
-
-
-  stock!: Stack
-
-  _init() {
-    this.stock = this.make(Stack, Vec2.make(0, 0), { h: 1 })
-    this.stock.set_position(this.data.stock_position)
-
-    this.make(Clickable, Vec2.make(0, 0), {
-      debug: true,
-      rect: Rect.make(0, 0, 320, 180),
-      on_click() {
-        console.log('here')
-      }
-    })
-  }
-
-  add_to_stock(cards: Array<Card>) {
-    this.stock.add_cards(cards)
-  }
-}
-
-type TableuData = {
-  back_position: Vec2
-}
-class Tableu extends Play {
-  get data() {
-    return this._data as TableuData
-  }
-
-  backs!: Stack
-  fronts!: Stack
-
-  _init() {
-
-    this.backs = this.make(Stack, Vec2.make(0, 0), { h: 33 })
-    this.fronts = this.make(Stack, Vec2.make(0, 0), {})
-
-    this.backs.set_position(this.data.back_position)
-    this._position_stacks()
-
-  }
-
-  _act_on_settled?: () => void
-
-  flip_front_top() {
-    this._act_on_settled = () => {
-      this._flip_front_top()
-    }
-  }
-
-  _flip_front_top() {
-    let card = this.backs.pop_card()!
-    card.flip_front()
-    this.fronts.add_cards([card])
-    this._position_stacks()
-  }
-
-  add_to_back(card: Card) {
-    this.backs.add_cards([card])
-    this._position_stacks()
-  }
-
-  _position_stacks() {
-    this.fronts.set_position(this.backs.top_next_position)
-  }
-
-  _update() {
-    if (this._act_on_settled) {
-      if (this.backs.settled && this.fronts.settled) {
-        this._act_on_settled()
-        this._act_on_settled = undefined
-      }
-    }
-  }
-}
+import { Card } from './showcase'
 
 let rnd_screen_poss = [...Array(50).keys()].map(() => v_random().mul(v_screen.scale(0.8)))
 
 type ShufflerData = {
   on_end: () => void
 }
-class Shuffler extends Play {
+export class Shuffler extends Play {
 
   get data() {
     return this._data as ShufflerData
@@ -259,7 +48,7 @@ class Shuffler extends Play {
   set cards(cards: Array<Card>) {
     this._cards = cards
     if (cards.length > 0) {
-      this._timer = ticks.seconds * 1.5
+      this._timer = ticks.seconds * 0.5
     }
   }
 
@@ -337,9 +126,7 @@ function *shell_sort<A>(a: Array<A>) {
   while (h > 0) {
     h = Math.floor(h / 3)
     for (let k = 1; k <= h; k++) {
-      for (let res of insertion_sort(a,k,h)) {
-        yield res
-      }
+      yield * insertion_sort(a,k,h)
     }
   }
 }
@@ -368,7 +155,7 @@ const layout_line_pos = (i: number, n: number) => {
 type LaydeckData = {
   on_layout: () => void
 }
-class Laydeck extends Play {
+export class Laydeck extends Play {
 
   get data() {
     return this._data as LaydeckData
@@ -397,7 +184,7 @@ class Laydeck extends Play {
   }
 
   _begin_sort() {
-    let _ = this._cards.map(_ => !_.data.card ? -1 : card_sort_key(_.data.card))
+    let _ = this._cards.map(_ => !_.card ? -1 : card_sort_key(_.card))
     this._sort_shot = []
     let sorter = shell_sort(_)
     let n = Math.floor(_.length / 3)
@@ -410,10 +197,10 @@ class Laydeck extends Play {
       _cards[b] = tmp
 
       if (i++ > 3 && i%n === 0) {
-        this._sort_shot.push(_cards.slice(0))
+        this._sort_shot.unshift(_cards.slice(0))
       }
     }
-    this._sort_shot.push(_cards)
+    this._sort_shot.unshift(_cards)
   }
 
   _begin_flip() {
@@ -511,89 +298,29 @@ class Laydeck extends Play {
 
 }
 
-class MakeSolitaireGame extends Play {
-
-  _cards: Array<Card> = []
-
-  set cards(cards: Array<Card>) {
-    this._cards = cards.slice(0)
-    this._begin_make()
-  }
-
-  _update() {
-
-    this._cards.forEach(_ => _.update())
-  }
-
-  _draw(batch: Batch) {
-
-    this._cards.forEach(_ => _.draw(batch))
-
-    batch.push_matrix(Mat3x2.create_translation(this.position))
-    this._draw_children(batch)
-
-    batch.pop_matrix()
-
-  }
-
-
-  _begin_make() {
-
-    let n_seven = [...Array(7).keys()]
-
-    let tableu_x = 360,
-    tableu_y = 180
-    let w = 200
-    let tableus = n_seven.map(i => this.make(Tableu, Vec2.make(0, 0), {
-      back_position: Vec2.make(tableu_x + w * i, tableu_y)
-    }))
-
-    let stock_x = 132,
-      stock_y = 340
-
-    let stock = this.make(Stock, Vec2.make(0, 0), {
-      stock_position: Vec2.make(stock_x, stock_y)
-    })
-
-    let f_cards = n_seven.map(i => this._cards.splice(0, i + 1))
-
-    f_cards.forEach(n0 => {
-      n0.forEach((card, i) => {
-        tableus[6-i].add_to_back(card)
-      })
-    })
-
-    stock.add_to_stock(this._cards.splice(0))
-
-
-    tableus.forEach(t => t.flip_front_top())
-  }
-
-
-}
-
 type DealerData = {
-  cards: Array<OCard>
+  on_shuffle: () => void
 }
 
-class Dealer extends Play {
+export class Dealer extends Play {
 
   get data() {
     return this._data as DealerData
   }
 
-  cards!: Array<Card>
+  get cards() {
+    return this._cards
+  }
+
+  set cards(cards: Array<Card>) {
+    this._cards = cards
+  }
+
+  _cards!: Array<Card>
   shuffler!: Shuffler
   laydeck!: Laydeck
-  maker!: MakeSolitaireGame
 
   _init() {
-
-    let starting_position = Vec2.make(v_screen.x * 0.5, v_screen.y * 0.8)
-    this.cards = this.data.cards
-    .map(_ => this._make(Card, Vec2.make(starting_position.x, starting_position.y), {
-      card: _
-    }))
 
     let self = this
     this.laydeck = this.make(Laydeck, Vec2.make(0, 0), {
@@ -605,24 +332,17 @@ class Dealer extends Play {
     this.shuffler = this.make(Shuffler, Vec2.make(0, 0), {
       on_end() {
         self.shuffler.cards = []
-        self.begin_real_deal()
+        self.data.on_shuffle()
       }
     })
-
-    this.maker = this.make(MakeSolitaireGame, Vec2.make(0, 0), {
-    })
-  }
-
-  begin_real_deal() {
-    this.maker.cards = this.cards
   }
 
   begin_laydeck() {
-    this.laydeck.cards = this.cards
+    this.laydeck.cards = this._cards
   }
 
   begin_shuffle() {
-    this.shuffler.cards = this.cards
+    this.shuffler.cards = this._cards
   }
 
 }

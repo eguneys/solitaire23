@@ -36,6 +36,9 @@ export class SuitRankDecoration extends Play {
     return this._card === hidden_card
   }
 
+  get card() {
+    return this._card
+  }
 
   set card(card: CardPov) {
     this._card = card
@@ -106,7 +109,6 @@ export class Card extends Play {
   release() {
     this.lerp_position()
     this.unset_dragging()
-    this.card = hidden_card
 
     this.bind_drag(undefined)
     this.bind_drop(undefined)
@@ -123,6 +125,10 @@ export class Card extends Play {
 
   get waiting() {
     return this.decoration.waiting
+  }
+
+  get card() {
+    return this.decoration.card
   }
 
   set card(card: CardPov) {
@@ -163,7 +169,7 @@ export class Card extends Play {
 
     this._will_lerp_position = v
     this._will_lerp_t = t
-    if (this.v) {
+    if (v) {
       this._target_speed = (1-(t || 0.5)) * 0.2
     } else {
       this._target_speed = 0
@@ -216,6 +222,14 @@ export class Card extends Play {
   _hover_time?: number
   get hover_time() {
     return this._hover_time ?? 0
+  }
+
+  ease_rotation(r: number, duration: number = ticks.half) {
+    this._tr = this.tween_single(this._tr, [this.rotation, r], (v) => {
+      this.rotation = v
+    }, duration, 0, () => { 
+      this._tr = undefined
+    })
   }
 
   ease_position(v: Vec2, duration: number = ticks.half) {

@@ -35,6 +35,8 @@ import { Card, Stack, DragStack, Tableu, Cards } from './showcase'
 
 import Sound from './sound'
 
+import { Dealer } from './solitaire'
+
 
 const reverse_forEach = <A>(a: Array<A>, f: (_: A) => void) => {
   for (let i = a.length - 1; i >= 0; i--) {
@@ -170,6 +172,8 @@ export class SolitaireGame extends Play {
   stock!: Stock
   tableus!: Array<Tableu>
 
+  dealer!: Dealer
+
   cards!: Cards
 
   dragging?: DragStack
@@ -271,12 +275,20 @@ export class SolitaireGame extends Play {
 
 
 
+    let dealer = this.make(Dealer, Vec2.zero, {
+      on_shuffle() {
 
+        dealer.cards.forEach(_ => self.cards.release(_))
+        self._init_pov()
+      }
+    })
+
+    this.dealer = dealer
 
     make_solitaire_back(this).then((back_res) => {
       
       this._back_res = back_res
-      this._init_pov()
+      this._collect_pov()
     })
   }
 
@@ -286,7 +298,7 @@ export class SolitaireGame extends Play {
 
   _collect_pov() {
 
-    let { stock, tableus } = this
+    let { dealer, stock, tableus } = this
 
     let cards = [
       ...stock.free(),
@@ -294,6 +306,14 @@ export class SolitaireGame extends Play {
     ]
 
     cards.forEach(_ => this.cards.release(_))
+
+    dealer.cards = OCards.deck.map(card => {
+      let res = this.cards.borrow()
+      res.card = card
+      res.flip_front()
+      return res
+    })
+    dealer.begin_laydeck()
 
 
   }
@@ -383,7 +403,6 @@ export class SolitaireGame extends Play {
 
   new_game() {
     this._collect_pov()
-    this._init_pov()
   }
 
   request_new_game() {
