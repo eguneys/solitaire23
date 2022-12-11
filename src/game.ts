@@ -5,7 +5,6 @@ import { Time, App, batch, Batch, Target } from 'blah'
 
 import Content from './content'
 import Input, { Hooks, EventPosition, DragEvent } from './input'
-import { howtos } from './howtos'
 import { Transition, transition } from './transition'
 import { pallette } from './pallette'
 
@@ -634,8 +633,8 @@ export class About2 extends Play {
     })
 
     let content = this._make(LongHyperText, Vec2.make(0, 0), {
-      width: 1880 - 80,
-      content: howtos['about']
+      width: 1880 - 100,
+      content: Trans.key2('about')
     })
 
     this.make(ScrollableContent, Vec2.make(60, 160), {
@@ -671,7 +670,7 @@ class LongHyperText extends Play {
       let end = i + capture.length
 
       if (i > _i) {
-        _.slice(_i, i).split(' ').forEach(_ =>
+        _.slice(_i, i).split(' ').filter(_ => !!_).forEach(_ =>
         res.push({
           text: _
         }))
@@ -684,7 +683,7 @@ class LongHyperText extends Play {
     }
 
     if (_i < _.length) {
-      _.slice(_i).split(' ').forEach(_ =>
+      _.slice(_i).split(' ').filter(_ => !!_).forEach(_ =>
       res.push({
         text: _
       }))
@@ -1524,7 +1523,7 @@ export class HowtoPlay2 extends Play {
 
     let content = this._make(LongHyperText, Vec2.make(0, 0), {
       width: 1800 - 80,
-      content: howtos['solitaire']
+      content: Trans.key2('solitaire')
     })
 
     let solitaire = this._make(ScrollableContent, Vec2.make(20, c_y), {
@@ -1536,7 +1535,7 @@ export class HowtoPlay2 extends Play {
 
     content = this._make(LongHyperText, Vec2.make(0, 0), {
       width: 1800 - 80,
-      content: howtos['fourtimes']
+      content: Trans.key2('fourtimes')
     })
 
     let fourtimes = this._make(ScrollableContent, Vec2.make(20, c_y), {
@@ -1547,7 +1546,7 @@ export class HowtoPlay2 extends Play {
 
     content = this._make(LongHyperText, Vec2.make(0, 0), {
       width: 1800 - 80,
-      content: howtos['octopus']
+      content: Trans.key2('octopus')
     })
 
     let octopus = this._make(ScrollableContent, Vec2.make(20, c_y), {
@@ -2103,8 +2102,8 @@ class SceneTransition extends Play {
     //this.current = this._make(CardShowcase, Vec2.zero, {})
     // this.current = this._make(MainMenu, Vec2.zero, {})
     //this.current = this._make(Statistics, Vec2.zero, {})
-    //this.current = this._make(MainMenu2, Vec2.zero, {})
-    this.current = this._make(HowtoPlay2, Vec2.zero, {})
+    this.current = this._make(MainMenu2, Vec2.zero, {})
+    //this.current = this._make(HowtoPlay2, Vec2.zero, {})
     //this.current = this._make(Settings2, Vec2.zero, {})
     //this.current = this._make(SolitairePlay, Vec2.zero, {})
     //this.current = this._make(About2, Vec2.zero, {})

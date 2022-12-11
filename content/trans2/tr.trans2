@@ -1,0 +1,106 @@
+# octopus
+Octopus 52-kart oyun destesiyle oynanır. Başlangıçta 54 kart 10 yığın halinde tablolara, en üst kart hariç üstü kapalı şekilde dağıtılır. Kalan 50 kart tablolara boş yığın olmadığı taktirde, 10 ar şekilde dağıtılabilir.
+
+Octopus oyunun amacı bütün kartları masadan kaldırmaktır. Bir tablo oluşturmak o kartları kaldırır. Tablo yığınları sayıya göre kurulur. Aynı sembol serileri beraber hareket ettirilebilir. 
+
+Oyun şu şekillerde oynanabilir:
+
+  - 4 sembol
+  - 2 sembol
+  - 1 sembol
+
+- Boş yığına herhangi bir kart yerleştirilebilir.
+
+Puanlama sistemi şu şekildedir:
+
+ - Kapalı bir kartı açmak:  10 puan
+ - Bir yığındaki tüm kapalı kartları açmak: 15 puan
+ - Üst sayılı bir kartın üstünde aynı sembolde bir kart: 2 puan
+ - Masadan kaldırılan, tamamlanmış bir sembol: 50 puan
+ - Hamle geri alma: - 20 puan
+
+Puanlama katlama:
+
+- 1 sembol: 1 katlama
+- 2 sembol: 2 katlama
+- 4 sembol: 3 katlama
+
+# solitaire
+Solitaire standart 52 kartlık desteyle oynanır.
+7 tane kart yığın tablosu yayılır. İlk yığında 1 kart vardır, ikinci yığında 2 kart gibi. Her yığınındaki en üstteki kart açılır. Arkadaki kartlar kapalıdır.
+Kalan kartlar stoğu oluşturur ve sol üstte kapalı bir şekilde durur.
+
+4 kuruluş sembollere göre As tan Kral'a kadar yapılır.
+Tablo yığınları değişen renklere göre kurulur.
+Yarım yada tam yığındaki her açık kart, bütün olarak, diğer bir tabloya yığının en yüksek sayılı kartına dayanarak hareket ettirilebilir.
+Her boş yığın Kral'la ya da Kral olan bir kart yığınıyla doldurulabilir.
+
+
+Oyununun amacı 4 kuruluş'u As'tan Kral'a kadar doldurmaktır.
+
+Stoktaki kartları çöpe dağıtmanın değişik yolları vardır, şu ayarlara göre:
+
+Açılan kartlar:
+
+- Üç kart: Çöpe bir kerede üç kart birden açma
+- Tek kart: Çöpe bir kerede tek kart açma
+
+
+Açma limiti:
+
+- Limit yok: desteden geçmenin limiti yok.
+- 3 geçiş: desteden 3 geçiş hakkı.
+- 1 geçiş: desteden 1 geçiş hakkı.
+
+- Eğer bir tablodaki tüm açık kartlar yer değiştirdiyse, tablonun en üstteki kapalı kartı açılır.
+- Çöpteki kartlar bir tabloya ya da kuruluşa hareket ettirilebilir.
+- Stok boşsa ve çöpte kartlar varsa, Çöpteki kartlar stoğa geri dönüştürülebilir, ayarlarda açma limitine göre.
+- Hamleler geri alma butonuyla geri alınabilir.
+
+
+Puanlama sistemi:
+
+- çöpten tabloya: 5 puan
+- çöpten kuruluşa: 10 puan
+- tablodan kuruluşa: 10 puan
+- tablodaki bir kartı açma: 5 puan
+- kuruluştan tabloya: - 15 puan
+- çöpü geri dönüştürme: -70 puan
+- hamle geri alma: -30 puan
+
+Puan katlama:
+
+- Limit yok: 1 katlama
+- 3 limit: 2 katlama
+- 1 limit: 3 katlama
+
+# fourtimes
+Fourtimes standard 52 kartlık desteyle oynanır. 4 tane açık hücre ve 4 kuruluş bulunur. Kartlar açık bir şekilde sekiz kasete dağıtılır. 4 tanesinin her birinde 7 kart bulunur, diğerlerinin her birinde 6 kart bulunur.
+
+- Her hücre kartı veya herhangi bir kasetin en üst kartı, tablo oluşturmak için, boş hücreye, boş kasete, veya boş kuruluşa hareket ettirilebilir.
+
+- Bütün ya da yarım tablolar diğer tablolarla birleştirilebilir, yada boş kasetlere yerleştirilebilir.
+
+- Oyunun amacı tüm kartları kuruluşlarına hareket ettirmektir.
+
+
+Puanlama sistemi:
+
+- Kuruluşa bir kart koymak: 10 puan
+- Hamle geri alma: -40 puan
+
+# about
+
+2023 te bir hobi projesi olarak [eguneys]"https://eguneys.github.io" tarafından yapılmıştır.
+
+Eğlenceli bir şekilde zaman geçirmek için 3 solitaire oyunu. [Solitaire]"https://en.wikipedia.org/wiki/Klondike_(solitaire)", [Fourtimes]"https://en.wikipedia.org/wiki/FreeCell", and [Octopus]"https://en.wikipedia.org/wiki/Spider_(solitaire)".
+
+- Bu proje ücretsiz ve [Github]"https://github.com/eguneys/solitaire23"da açık kaynaktır.
+
+- Diğer oyunlar mümkün olduğunda buraya linki koyulacaktır.
+
+- [Patreon]"https://www.patreon.com/eguneys" la bağış yapmayı düşünebilirsiniz.
+
+- İş teklifleri için lütfen twitter dan [@eguneys]"https://twitter.com/eguneys?lang=en" iletişime geçin.
+
+- Çeviri için katkıda bulunmak için [Translation]"https://github.com/eguneys/solitaire23/blob/master/TRANSLATE.md".
