@@ -143,6 +143,17 @@ class SolitaireStore {
   }
 
 
+  new_game() {
+    let games = this.games
+    games.add(this.current_game.data)
+    this.games = games
+
+    this.current_game = SolitaireGame.new
+
+    return this.current_game
+  }
+
+
 
 
 

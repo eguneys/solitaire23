@@ -614,7 +614,7 @@ class ScrollableListLongContent<T> extends Play {
 }
 
 type About2Data = {
-  on_back?: PalyType<Play>
+  on_back?: PlayType<Play>
 }
 
 export class About2 extends Play {
@@ -2283,8 +2283,8 @@ class SceneTransition extends Play {
     //this.current = this._make(Statistics, Vec2.zero, {})
     // this.current = this._make(MainMenu2, Vec2.zero, {})
     //this.current = this._make(HowtoPlay2, Vec2.zero, {})
-    this.current = this._make(Settings2, Vec2.zero, {})
-    //this.current = this._make(SolitairePlay, Vec2.zero, {})
+    //this.current = this._make(Settings2, Vec2.zero, {})
+    this.current = this._make(SolitairePlay, Vec2.zero, {})
     //this.current = this._make(About2, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))

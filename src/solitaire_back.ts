@@ -5,18 +5,32 @@ import { SolitaireGame } from './solitaire_game'
 import { FlipFront } from 'lsolitaire'
 import SolitaireStore, { SolitaireGame as StoreSolitaireGame } from './store'
 
+export type BackRes = {
+
+  pov: SolitairePov,
+  cmd: (ctor: CommandType, data?: any) => void,
+  dispose: () => void,
+
+  new_game: ()=> Promise<void>
+}
+
 export async function make_solitaire_back(game: SolitaireGame) {
   let back = new SolitaireBack()
   let pov = await back.get_pov()
 
   return {
-    pov,
+    get pov() { return pov },
     cmd(ctor: CommandType, data?: any) {
       new ctor(back, pov, game)._set_data(data).send()
     },
     dispose() {
       SolitaireStore.save_current(back.game)
 
+    },
+    async new_game() {
+      SolitaireStore.new_game()
+      back = new SolitaireBack()
+      pov = await back.get_pov()
     }
   }
 }
@@ -47,6 +61,11 @@ class SolitaireBack {
 
   async drop_tableu(drag: DragPov, tableu: number) {
     return this.solitaire.drop_tableu(drag, tableu)
+  }
+
+  async new_game() {
+    this.game = SolitaireStore.new_game()
+    return this.solitaire.pov
   }
 
 }

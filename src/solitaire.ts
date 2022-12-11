@@ -29,6 +29,8 @@ import { SolitaireGame } from './solitaire_game'
 
 import { Button } from './ui'
 
+import SolitaireStore from './store'
+
 type CardData = {
   card?: OCard,
   back?: true
@@ -708,6 +710,7 @@ export class SolitairePlay extends Play {
   set sidebar_open(v: boolean) {
     this.sidebar.open = v
     this.overlay.visible = v
+    this.hamburger.open = v
   }
 
   hamburger!: Hamburger
@@ -747,6 +750,10 @@ export class SolitairePlay extends Play {
     })
 
     sidebar = this.make(SideBar, Vec2.make(-600, 180), {
+      on_new_game() {
+        game.request_new_game()
+        self.sidebar_open = false
+      }
     })
 
     this.sidebar = sidebar
@@ -758,8 +765,15 @@ export class SolitairePlay extends Play {
   }
 }
 
+type SideBarData = {
+  on_new_game: () => void
+}
 
 class SideBar extends Play {
+
+  get data() {
+    return this._data as SideBarData
+  }
 
   _t_x?: Tween
 
@@ -789,6 +803,7 @@ class SideBar extends Play {
   _init() {
     this._open = false
 
+    let self = this
     let _ = this.make(Anim, Vec2.make(0, -100), {
       name: 'side_menu_bg'
     })
@@ -806,6 +821,7 @@ class SideBar extends Play {
     this.make(SideBarItem, Vec2.make(x, y + h), {
       text: 'new_game',
       on_click() {
+        self.data.on_new_game()
       }
     })
 
@@ -947,7 +963,6 @@ class Hamburger extends Play {
     } else {
       this.anim.play('idle')
     }
-    this.data.on_open(v)
   }
 
   anim!: Anim
@@ -977,7 +992,7 @@ class Hamburger extends Play {
       },
       on_click() {
         self.open = !self._open
-        
+        self.data.on_open(self._open)
         return true
       }
     })

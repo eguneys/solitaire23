@@ -25,7 +25,7 @@ import { Tween } from './tween'
 import { Text, RectView, Clickable, Background } from './game'
   
 import { SolitaireHooks } from './hooks'
-import { make_solitaire_back } from './solitaire_back'
+import { BackRes, make_solitaire_back } from './solitaire_back'
 import { CommandType } from './solitaire_back'
 import { HitStock, Recycle, DragTableu, DropTableu } from './solitaire_back'
 import { DragSource, DragSources } from 'lsolitaire'
@@ -80,6 +80,15 @@ class Stock extends Play {
 
   get can_recycle() {
     return this.stock.length === 0
+  }
+
+  free() {
+
+    return [
+      ...this.stock.remove_cards(this.stock.length),
+      ...this.waste.remove_cards(this.waste.length),
+      ...this.waste_hidden.remove_cards(this.waste_hidden.length)
+    ]
   }
 
   add_waste_hidden(cards: Array<Card>) {
@@ -166,10 +175,22 @@ export class SolitaireGame extends Play {
   dragging?: DragStack
   drag_source?: DragSource
 
-  on_dispose_back!: () => void
 
   recycle_view!: RecycleView
-  cmd!: (ctor: CommandType, data?: any) => void
+
+  _back_res!: BackRes
+
+  get on_dispose_back() {
+    return this._back_res.dispose
+  }
+
+  get cmd() {
+    return this._back_res.cmd
+  }
+
+  get pov() {
+    return this._back_res.pov
+  }
 
   _dispose() {
     this.on_dispose_back()
@@ -177,49 +198,85 @@ export class SolitaireGame extends Play {
 
   _init() {
 
-    make_solitaire_back(this).then(({pov, cmd, dispose }) => {
 
-      this.on_dispose_back = dispose
+    let self = this
+    let c = this.make(Clickable, Vec2.zero, {
+      rect: Rect.make(0, 0, 0, 0),
+      on_up() {
+        if (self.dragging && !self.dragging.waiting) {
 
-      let self = this
-      let c = this.make(Clickable, Vec2.zero, {
-        rect: Rect.make(0, 0, 0, 0),
-        on_up() {
-          if (self.dragging && !self.dragging.waiting) {
+          self.pov.cancel_drag()
 
-            pov.cancel_drag()
+          let cards = self.dragging.lerp_release()
+          let [source, n, i] = self.drag_source!
 
-            let cards = self.dragging.release()
-            let [source, n, i] = self.drag_source!
-
-            switch (source) {
-              case 'tableu':
-                self.tableus[n].add_fronts(cards)
-              break
-            }
-
-            self.dragging.dispose()
-            self.dragging = undefined
-            Sound.play('ding')
-            cards[0].after_ease(() => {
-              self.cards.shadow_group = undefined
-            })
+          switch (source) {
+            case 'tableu':
+              self.tableus[n].add_fronts(cards)
+            break
           }
-        }
-      })
 
-      this.recycle_view = this.make(RecycleView, Vec2.make(40, 200), {
+          self.dragging.dispose()
+          self.dragging = undefined
+          Sound.play('ding')
+          cards[0].after_ease(() => {
+            self.cards.shadow_group = undefined
+          })
+        }
+      }
+    })
+
+
+    this.recycle_view = this.make(RecycleView, Vec2.make(40, 200), {
+
+      on_recycle() {
+        if (self.stock.can_recycle) {
+          self.cmd(Recycle)
+        }
+      }
+    })
+
+    this.cards = this.make(Cards, Vec2.zero, {})
+
+    let stock_x = 120,
+      stock_y = 320
+
+    let stock = this.make(Stock, Vec2.make(stock_x, stock_y), { 
+      on_hit() {
+        self.cmd(HitStock)
+      }
+    })
+    this.stock = stock
+
+
+    let tableu_x = 350,
+      tableu_y = 180,
+      tableu_w = 200
+
+
+    let tableus = n_seven.map(i => 
+                this.make(Tableu, Vec2.make(tableu_x + tableu_w * i, tableu_y), {
+                  on_front_drag(e: number, v: Vec2) {
+                    if (self.dragging) {
+                      self.dragging.drag(v)
+                    } else {
+                      self.cmd(DragTableu, { tableu: i, i: e })
+                    }
+                  },
+                  on_front_drop() {
+                    self.cmd(DropTableu, { tableu: i })
+                  }
+                }))
+    this.tableus = tableus
+
+
+
+
+
+    make_solitaire_back(this).then((back_res) => {
       
-        on_recycle() {
-          if (self.stock.can_recycle) {
-            self.cmd(Recycle)
-          }
-        }
-      })
-
-      this.cards = this.make(Cards, Vec2.zero, {})
-
-      this._init_pov(pov, cmd)
+      this._back_res = back_res
+      this._init_pov()
     })
   }
 
@@ -227,18 +284,23 @@ export class SolitaireGame extends Play {
 
   }
 
-  _init_pov(pov: SolitairePov, cmd: (ctor: CommandType, data?: any) => void) {
-    this.cmd = cmd
-    let stock_x = 120,
-      stock_y = 320
+  _collect_pov() {
 
-    let self = this
-    let stock = this.make(Stock, Vec2.make(stock_x, stock_y), { 
-      on_hit() {
-        cmd(HitStock)
-      }
-    })
-    this.stock = stock
+    let { stock, tableus } = this
+
+    let cards = [
+      ...stock.free(),
+      ...tableus.flatMap(_ => _.free())
+    ]
+
+    cards.forEach(_ => this.cards.release(_))
+
+
+  }
+
+  _init_pov() {
+
+    let { stock, tableus, cmd, pov } = this
 
     stock.add_stocks(pov.stock.stock.cards.map(card =>
                                                this.cards.borrow()))
@@ -248,28 +310,6 @@ export class SolitaireGame extends Play {
     
     stock.add_waste(pov.stock.waste.cards.map(card =>
                                               this.cards.borrow()))
-
-    let tableu_x = 350,
-      tableu_y = 180,
-      tableu_w = 200
-
-
-    let tableus = pov.tableus.map((tableu, i) => 
-                this.make(Tableu, Vec2.make(tableu_x + tableu_w * i, tableu_y), {
-                  tableu,
-                  on_front_drag(e: number, v: Vec2) {
-                    if (self.dragging) {
-                      self.dragging.drag(v)
-                    } else {
-                      cmd(DragTableu, { tableu: i, i: e })
-                    }
-                  },
-                  on_front_drop() {
-                    cmd(DropTableu, { tableu: i })
-                  }
-                }))
-    this.tableus = tableus
-
     n_seven.map(i => {
       let tableu = tableus[i]
       let t_pov = pov.tableus[i]
@@ -326,7 +366,7 @@ export class SolitaireGame extends Play {
   }
 
   drop_tableu(tableu: number) {
-    let cards = this.dragging!.release()
+    let cards = this.dragging!.lerp_release()
     this.dragging = undefined
     this.tableus[tableu].add_fronts(cards)
     cards[0].after_ease(() => {
@@ -341,4 +381,17 @@ export class SolitaireGame extends Play {
   cant_drop_tableu(tableu: number) {
   }
 
+  new_game() {
+    this._collect_pov()
+    this._init_pov()
+  }
+
+  request_new_game() {
+    this._back_res.new_game().then(() => {
+      this.new_game()
+    })
+  }
+
+  wait_new_game() {
+  }
 }

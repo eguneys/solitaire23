@@ -49,7 +49,6 @@ export class SuitRankDecoration extends Play {
   suit!: Anim
   decsuit!: Array<Anim>
 
-
   _init() {
 
     let v_next = Vec2.make(40, 40);
@@ -104,6 +103,23 @@ export class Card extends Play {
 
   decoration!: SuitRankDecoration
 
+  release() {
+    this.lerp_position()
+    this.unset_dragging()
+    this.card = hidden_card
+
+    this.bind_drag(undefined)
+    this.bind_drop(undefined)
+    this.bind_hover(undefined)
+    this._after_ease = undefined
+  }
+
+  lerp_release() {
+    this.lerp_position()
+    this.unset_dragging()
+  }
+
+
 
   get waiting() {
     return this.decoration.waiting
@@ -113,12 +129,12 @@ export class Card extends Play {
     this.decoration.card = card
     if (this.waiting) {
       if (this.anim._animation === 'idle') {
-        this.anim.play('wait')
+        this.anim.play_now('wait')
         this.decoration.visible = false
       }
     } else {
       if (this.anim._animation === 'wait') {
-        this.anim.play('idle')
+        this.anim.play_now('idle')
         this.decoration.visible = true
       }
     }
@@ -147,7 +163,11 @@ export class Card extends Play {
 
     this._will_lerp_position = v
     this._will_lerp_t = t
-    this._target_speed = (1-(t || 0.5)) * 0.2
+    if (this.v) {
+      this._target_speed = (1-(t || 0.5)) * 0.2
+    } else {
+      this._target_speed = 0
+    }
   }
 
   _dragging!: boolean
@@ -157,7 +177,7 @@ export class Card extends Play {
   }
   _drag_decay: Vec2 = Vec2.zero
   _on_drag?: DragHook
-  bind_drag(e: DragHook) {
+  bind_drag(e?: DragHook) {
     this._on_drag = e
   }
 
@@ -383,6 +403,7 @@ export class Card extends Play {
 
     if (this._will_flip_front) {
       if (!this.easing) {
+
         this._will_flip_front = false
         this.shadow.visible = false
         this.decoration.visible = false
@@ -442,6 +463,7 @@ export class Cards extends Play {
   release(card: Card) {
     card.visible = false
     this.used.splice(this.used.indexOf(card), 1)
+    card.release()
     this.frees.push(card)
   }
 
@@ -506,6 +528,7 @@ export class Stack extends Play {
   }
 
   add_cards(cards: Array<Card>) {
+    cards.forEach(_ => _.send_front())
     this.cards.push(...cards)
     this._reposition()
   }
@@ -584,13 +607,14 @@ export class DragStack extends Play {
     })
   }
 
-  release() {
+  lerp_release() {
     let cards = this._cards.splice(0)
 
-    cards.forEach(_=> _.lerp_position())
-    cards.forEach(_ => _.unset_dragging())
+    cards.forEach(_ => _.lerp_release())
+
     return cards
   }
+
 
   _init() {
     this._cards = []
@@ -617,6 +641,12 @@ export class Tableu extends Play {
 
   get top_back_position() {
     return this.backs.top_position
+  }
+
+  free() {
+    return [
+      ...this.backs.remove_cards(this.backs.length),
+      ...this.fronts.remove_cards(this.fronts.length)]
   }
 
   add_backs(cards: Array<Card>) {
@@ -796,7 +826,7 @@ export class CardShowcase extends Play {
       rect: Rect.make(0, 0, 0, 0),
       on_up() {
         if (self.dragging) {
-          let _cards = self.dragging.release()
+          let _cards = self.dragging.lerp_release()
           tableu3.add_fronts(_cards)
           self.dragging = undefined
           _cards[0].after_ease(() => {
