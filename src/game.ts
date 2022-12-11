@@ -964,11 +964,12 @@ export class Text extends Play {
   }
 
   get color() {
-    return this.data.color ?? Color.white
+    return this._color
   }
 
+  _color!: Color
   set color(color: Color) {
-    this.data.color = color
+    this._color = color
   }
 
   get text() {
@@ -997,6 +998,7 @@ export class Text extends Play {
   } 
 
   _init() {
+    this.color = this.data.color ?? Color.white
     this._size = this.data.size ?? 128
     this.rotation = this.data.rotation ?? 0
     this.origin = this.data.center ? Vec2.make(this.width / 2, 0) : Vec2.zero
@@ -1017,36 +1019,41 @@ type HyperTextData = TextData & {
   on_click: () => void
 }
 
-class HyperText extends Text {
+class HyperText extends Play {
 
   get data() {
     return this._data as HyperTextData
   }
 
+  text_view!: Text
+
+  set color(c: Color) {
+    this.text_view.color = c
+  }
+
+  get width() {
+    return this.text_view.width
+  }
+
+  get height() {
+    return this.text_view.height
+  }
+
   _init() {
 
+    this.text_view = this.make(Text, Vec2.zero, this.data)
+
     let self = this
-    this.unbindable_input({
-      on_hover(_e: EventPosition) {
-        let e = _e.mul(Game.v_screen)
-        let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
-        let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
-        if (rect.overlaps(point)) {
-          self.color = Color.red
-        } else {
-          self.color = link_color
-        }
-        return false
+    this.make(Clickable, Vec2.make(0, -this.text_view.height / 3), {
+      rect: Rect.make(0, 0, this.text_view.width, this.text_view.height),
+      on_hover() {
+        self.color = Color.red
       },
-      on_click(_e: EventPosition, right: boolean) {
-        let e = _e.mul(Game.v_screen)
-        let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
-        let rect = Rect.make(self.g_position.x, self.g_position.y, self.width, self.height)
-        if (rect.overlaps(point)) {
-          self.data.on_click()
-          return true
-        }
-        return false
+      on_hover_end() {
+        self.color = self.data.color ?? Color.white
+      },
+      on_click() {
+        self.data.on_click()
       }
     })
   }
