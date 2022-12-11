@@ -283,7 +283,9 @@ export class Card extends Play {
           self._lerp_drag_shadow = 0
           self._dragging = true
           self._drag_decay = e.sub(self.position)
+          return true
         }
+        return false
       },
       on_drag_end() {
         self._dragging = false
@@ -291,7 +293,9 @@ export class Card extends Play {
       on_drag(e: Vec2) {
         if (self._on_drag) {
           self._on_drag(e)
+          return true
         }
+        return false
       },
       on_drop() {
         if (self._on_drop) {

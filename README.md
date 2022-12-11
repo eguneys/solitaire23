@@ -189,5 +189,41 @@ The scoring system is:
 - recycle waste:        -70 points
 - undo a move:          -30 points
 
-## Freecell
-## Spider
+## Fourtimes
+
+Fourtimes is played with a standard 52-card deck. There are four open cells and four open foundations. Cards are dealt face up into eight cascades. Four of which has seven cards each, and other four has six cards each. 
+The top card of each cascade begins a tableu. Tableus must be built down by alternating colors. Foundations are built up by suit from ace to king.
+
+- Any cell card or top card of any cascade may be moved to build on a tableu, or moved to an empty cell, or to an empty cascade, or its foundation.
+- Complete or partial tableus may be moved to build on existing tableus, or moved to empty cascades.
+
+- The aim of the game is to move all cards to their foundation piles.
+
+The scoring system is:
+
+- Add a card to foundation: 10 points
+- Undo a move : -40 points
+
+## Octopus
+
+Octopus is played with 2 52-card playing decks. Initially 54 cards are dealt to the tableu in ten piles, face down except for the top cards. The tableu piles are build down by rank. In-suit sequences can be moved together. The 50 remaining cards can be dealth to the tableu 10 at a time when none of the piles are empty.
+
+The aim of the game Octopus is to remove all cards from the table. Assembling a tableu will remove it. The tableu piles build down by rank, and in suit sequences can be moved together. 
+
+Game can be played with 
+
+  - 4 suits
+  - 2 suits
+  - 1 suit
+
+- Any card can be placed on an empty pile.
+
+The scoring system is:
+
+ - A face down card that gets turned over:  10 points
+ - All face down cards are turned over on a pile: 15 points
+ - A card sitting atop next higher card of the same suit: 2 points
+ - A completed suit removed from the tableu: 50 points
+ - Undo a move: - 20 points
+
+

@@ -630,26 +630,91 @@ class Dealer extends Play {
 class ScoreBoard extends Play {
 
   _init() {
-    let _ = this.make(TransText, Vec2.make(0, 0), {
+    let _ = this.make(TransText, Vec2.make(0, 25), {
       key: 'score',
-      center: true,
-      width: 200,
+      width: 80,
       height: 100
     })
-    this.make(TransText, Vec2.make(0, _.height), {
+    this.make(TransText, Vec2.make(100, 6), {
       no_trans: true,
       key: '1000',
-      center: true,
-      width: 200,
+      width: 180,
+      height: 100,
+      color: Color.black
+    })
+    this.make(TransText, Vec2.make(100, 0), {
+      no_trans: true,
+      key: '1000',
+      width: 180,
       height: 100
+    })
+  }
+}
+
+type OverlayData = {
+  on_close: () => void
+}
+class Overlay extends Play {
+
+  get data() {
+    return this._data as OverlayData
+  }
+
+  _init() {
+
+    [
+      v_random().mul(v_screen),
+      v_random().mul(v_screen),
+      v_random().mul(v_screen),
+      v_random().mul(v_screen),
+      v_random().mul(v_screen),
+      v_random().mul(v_screen),
+      v_random().mul(v_screen),
+      v_random().mul(v_screen),
+      v_random().mul(v_screen),
+      v_random().mul(v_screen),
+      v_random().mul(v_screen),
+    ].forEach(v => {
+      let _ = this.make(Anim, v, {
+        name: 'swiggle'
+      })
+      _.origin = Vec2.make(600, 400)
+      _.scale = Vec2.one.scale(0.5 + v_random().x)
+      if (v_random().y < 0.5) {
+        _.play('small')
+      }
+      _.rotation = v_random().y * Math.PI
     })
 
 
 
+    let self = this
+    this.make(Clickable, Vec2.zero, {
+      rect: Rect.make(0, 0, 1920, 1080),
+      on_hover() {
+        return true
+      },
+      on_drag() {
+        return true
+      },
+      on_click() {
+        self.data.on_close()
+        return true
+      }
+    })
   }
 }
 
 export class SolitairePlay extends Play {
+
+  set sidebar_open(v: boolean) {
+    this.sidebar.open = v
+    this.overlay.visible = v
+  }
+
+  hamburger!: Hamburger
+  sidebar!: SideBar
+  overlay!: Overlay
 
   _init() {
 
@@ -666,27 +731,31 @@ export class SolitairePlay extends Play {
       }
     })
 
-    this.make(ScoreBoard, Vec2.make(150, 760), {
+    this.make(ScoreBoard, Vec2.make(16, 860), {
     })
 
-
-    let overlay = this.make(RectView, Vec2.zero, {
-      w: 1920,
-      h: 1080,
-      color: Color.white
-    })
-    overlay.visible = false
-
-    this.make(Hamburger, Vec2.make(2, 2), {
-      on_click: () => {
-        sidebar.open = !sidebar.open
-        overlay.visible = sidebar.open
+    let self = this
+    let overlay = this.make(Overlay, Vec2.zero, {
+      on_close() {
+        self.sidebar_open = false
+        self.hamburger.open = false
       }
     })
 
-    sidebar = this.make(SideBar, Vec2.make(-400, 180), {
+    let hamburger = this.make(Hamburger, Vec2.make(2, 2), {
+      on_open: (v: boolean) => {
+        self.sidebar_open = v
+      }
     })
 
+    sidebar = this.make(SideBar, Vec2.make(-600, 180), {
+    })
+
+    this.sidebar = sidebar
+    this.overlay = overlay
+    this.hamburger = hamburger
+
+    this.sidebar_open = false
 
   }
 }
@@ -694,19 +763,38 @@ export class SolitairePlay extends Play {
 
 class SideBar extends Play {
 
-  get x() {
-    return this.open ? 8 : -400
+  _t_x?: Tween
+
+  _open!: boolean
+  set open(v: boolean) {
+    this._open = v
+
+    if (this._t_x) {
+      this.cancel(this._t_x)
+    }
+
+    if (v) {
+      this._t_x = this.tween([this.position.x, 0], (v) => {
+        this.position.x = v
+      }, ticks.sixth, 0, () => {
+        this._t_x = undefined
+      })
+    } else {
+      this._t_x = this.tween([this.position.x, -600], (v) => {
+        this.position.x = v
+      }, ticks.sixth, 0, () => {
+        this._t_x = undefined
+      })
+    }
   }
 
-  open: boolean = false
-
   _init() {
+    this._open = false
 
-    this.make(RectView, Vec2.make(0, 0), {
-      w: 400,
-      h: 820,
-      color: Color.black
+    let _ = this.make(Anim, Vec2.make(0, -100), {
+      name: 'side_menu_bg'
     })
+    _.scale = Vec2.make(1.4, 1.4)
 
     let x = 20
     let y = 60 
@@ -742,11 +830,6 @@ class SideBar extends Play {
       }
     })
   }
-
-  _update() {
-    this.position.x = appr(this.position.x, this.x, Time.delta * 1000)
-  }
-
 }
 
 
@@ -759,11 +842,60 @@ class SideBarItem extends Play {
     return this._data as SideBarItemData
   }
 
+  _t_color?: Tween
+  _i_color!: number
+
+  get i_color() {
+    return this._i_color
+  }
+
+  set i_color(v: number) {
+    this._i_color = v
+
+    this.bg.color = Color.lerp(Color.white, Color.hex(0x202431), this._i_color)
+    this.fg.color = Color.lerp(Color.white, Color.hex(0x202431), 1 - this._i_color)
+
+  }
+
+
+  set hover(v: boolean) {
+
+    if (this._t_color) {
+      this.cancel(this._t_color)
+    }
+
+    if (v) {
+      this._t_color = this.tween([this.i_color, 0], (v) => {
+        this.i_color = v
+      }, ticks.sixth, 0, () => {
+        this._t_color = undefined
+      })
+    } else {
+      this._t_color = this.tween([this.i_color, 1], (v) => {
+        this.i_color = v
+      }, ticks.sixth, 0, () => {
+        this._t_color = undefined
+      })
+    }
+  }
+
+  bg!: RectView
+  fg!: TransText
+
   _init() {
-    this.make(TransText, Vec2.make(0, 0), {
+
+    this._i_color = 0
+    this.bg = this.make(RectView, Vec2.make(-20, -40), {
+      w: 412,
+      h: 120,
+      color: Color.hex(0x202431)
+    })
+
+    this.fg = this.make(TransText, Vec2.make(0, 0), {
       key: this.data.text,
       width: 350,
-      height: 100
+      height: 100,
+      color: Color.white
     })
 
 
@@ -772,25 +904,26 @@ class SideBarItem extends Play {
 
     let self = this
 
-    this.make(Clickable, Vec2.make(0, 0), {
+    this.make(Clickable, Vec2.make(-20, -40), {
       rect: Rect.make(0, 0, w, h),
       on_hover() {
+        self.hover = true
       },
       on_hover_end() {
+        self.hover = false
       },
       on_click() {
         self.data.on_click()
+        return true
       }
     })
-
-
   }
 
 
 }
 
 type HamburgerData = {
-  on_click: () => void
+  on_open: (v: boolean) => void
 }
 
 class Hamburger extends Play {
@@ -799,11 +932,28 @@ class Hamburger extends Play {
     return this._data as HamburgerData
   }
 
+  _open!: boolean
+
+  set open(v: boolean) {
+    this._open = v
+    if (this._open) {
+      this.anim.play('open')
+    } else {
+      this.anim.play('idle')
+    }
+    this.data.on_open(v)
+  }
+
+  anim!: Anim
+
   _init() {
 
-    this.make(Anim, Vec2.make(0, 0), {
-      name: 'menu_bar'
+    this._open = false
+
+    let anim = this.make(Anim, Vec2.make(0, 0), {
+      name: 'hmg_bg'
     })
+    this.anim =anim
 
 
     let w = 200,
@@ -814,11 +964,15 @@ class Hamburger extends Play {
     this.make(Clickable, Vec2.make(20, 20), {
       rect: Rect.make(0, 0, w, h),
       on_hover() {
+        anim.play(self._open ? 'open_hover':'hover')
       },
       on_hover_end() {
+        anim.play(self._open ? 'open':'idle')
       },
       on_click() {
-        self.data.on_click()
+        self.open = !self._open
+        
+        return true
       }
     })
 

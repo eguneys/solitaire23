@@ -162,7 +162,7 @@ export class Clickable extends Play {
         let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
         let rect = self.rect
         if (rect.overlaps(point)) {
-          return self.data.on_click_begin?.() || false
+          return self.data.on_click_begin?.() ?? false
         }
         return false
       },
@@ -175,7 +175,7 @@ export class Clickable extends Play {
         }
         if (_dragging) {
           let m = d.m!.mul(Game.v_screen)
-          return self.data.on_drag?.(m) || false
+          return self.data.on_drag?.(m) ?? false
         }
 
         if (d.m && (!d0 || !d0.m)) {
@@ -184,7 +184,7 @@ export class Clickable extends Play {
           let rect = self.rect
           if (rect.overlaps(point)) {
             _dragging = true
-            return self.data.on_drag_begin?.(e) || false
+            return self.data.on_drag_begin?.(e) ?? false
           } else {
             return false
           }
@@ -233,7 +233,7 @@ export class Clickable extends Play {
         if (rect.overlaps(point)) {
           if (!_hovering) {
             _hovering = true
-             return self.data.on_hover?.() || false
+            return self.data.on_hover?.() ?? false
           }
         } else {
           if (_hovering) {
@@ -264,7 +264,7 @@ export class Clickable extends Play {
         let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
         let rect = self.rect
         if (rect.overlaps(point)) {
-          return self.data.on_click?.() || false
+          return self.data.on_click?.() ?? false
         }
         return false
       },
@@ -276,7 +276,7 @@ export class Clickable extends Play {
         let point = Rect.make(e.x - 4, e.y - 4, 8, 8)
         let rect = self.rect
         if (rect.overlaps(point)) {
-          return self.data.on_wheel?.(d) || false
+          return self.data.on_wheel?.(d) ?? false
         }
         return false
       }
@@ -1302,6 +1302,9 @@ class TabPanel extends Play {
   _selected_index!: number
   set selected_index(i: number) {
     this._selected_index = i
+
+
+    this.data.panels.forEach((_, _i) => _.visible = i === _i)
   }
 
   get active_panel() {
