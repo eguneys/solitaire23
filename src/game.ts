@@ -1519,15 +1519,17 @@ export class HowtoPlay2 extends Play {
 
 
 
+    let c_y = 40,
+    c_h = 780
 
     let content = this._make(LongHyperText, Vec2.make(0, 0), {
       width: 1800 - 80,
       content: howtos['solitaire']
     })
 
-    let solitaire = this._make(ScrollableContent, Vec2.make(20, 80), {
+    let solitaire = this._make(ScrollableContent, Vec2.make(20, c_y), {
       w: 1800,
-      h: 700,
+      h: c_h,
       content
     })
 
@@ -1537,9 +1539,9 @@ export class HowtoPlay2 extends Play {
       content: howtos['fourtimes']
     })
 
-    let fourtimes = this._make(ScrollableContent, Vec2.make(20, 80), {
+    let fourtimes = this._make(ScrollableContent, Vec2.make(20, c_y), {
       w: 1800,
-      h: 700,
+      h: c_h,
       content
     })
 
@@ -1548,9 +1550,9 @@ export class HowtoPlay2 extends Play {
       content: howtos['octopus']
     })
 
-    let octopus = this._make(ScrollableContent, Vec2.make(20, 80), {
+    let octopus = this._make(ScrollableContent, Vec2.make(20, c_y), {
       w: 1800,
-      h: 700,
+      h: c_h,
       content
     })
 
@@ -2102,10 +2104,10 @@ class SceneTransition extends Play {
     // this.current = this._make(MainMenu, Vec2.zero, {})
     //this.current = this._make(Statistics, Vec2.zero, {})
     //this.current = this._make(MainMenu2, Vec2.zero, {})
-    //this.current = this._make(HowtoPlay2, Vec2.zero, {})
+    this.current = this._make(HowtoPlay2, Vec2.zero, {})
     //this.current = this._make(Settings2, Vec2.zero, {})
     //this.current = this._make(SolitairePlay, Vec2.zero, {})
-    this.current = this._make(About2, Vec2.zero, {})
+    //this.current = this._make(About2, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
     pallette.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
