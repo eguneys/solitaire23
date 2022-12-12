@@ -26,6 +26,9 @@ import Sound from './sound'
 
 import Trans, { languages } from './trans'
 
+import { TurningCards, TurningLimit } from 'lsolitaire'
+import { SolitaireStore, GeneralStore } from './store'
+
 type RectData = {
   w: number,
   h: number,
@@ -1355,22 +1358,21 @@ class ScrollableContent extends Play {
 
 class TransitionMask extends Play {
 
-  get t() {
-    return rmap(ease(this._t), Game.width * 0.5, Game.width * 2.5)
-  }
+  t!: number
 
-  _t!: number
+  _t?: Tween
 
   _init() {
-    this._t = 1
-  }
-
-  _update() {
-    this._t = appr(this._t, 0, Time.delta)
+    this.t = Game.width * 0.5
+    this._t = this.tween([Game.width * 2.5, Game.width * 0.5], (v) => {
+      this.t = v
+    }, ticks.half, 0, () => {
+      this._t = undefined
+    })
   }
 
   get done() {
-    return this._t === 0
+    return !this._t
   }
 
   _draw(batch: Batch) {
@@ -1846,20 +1848,30 @@ class SolitaireSettings extends Play {
 
   _init() {
 
+    let settings = SolitaireStore.settings
+
+    let cards_settings = [TurningCards.ThreeCards, TurningCards.OneCard]
     let h = 220
     let turning_cards_setting = this.make(DropdownSetting, Vec2.make(40, 0), {
       name: 'turning_cards',
       items: ['three_cards', 'one_card'],
-      selected_index: 0,
+      selected_index: cards_settings.indexOf(settings.cards),
       on_selected(i: number) {
+        let settings = SolitaireStore.settings
+        settings.cards = cards_settings[i]
+        SolitaireStore.settings = settings
       }
     })
 
+    let limit_settings = [TurningLimit.NoLimit, TurningLimit.ThreePasses, TurningLimit.OnePass]
     let turning_limit_setting = this.make(DropdownSetting, Vec2.make(40, h * 1), {
       name: 'turning_limit',
       items: ['no_limit', 'three_passes', 'one_pass'],
-      selected_index: 0,
+      selected_index: limit_settings.indexOf(settings.limit),
       on_selected(i: number) {
+        let settings = SolitaireStore.settings
+        settings.limit = limit_settings[i]
+        SolitaireStore.settings = settings
       }
     })
 
@@ -1899,14 +1911,17 @@ class GeneralSettings extends Play {
 
   _init() {
 
+    let settings = GeneralStore.settings
     let h = 220
     let language_setting = this.make(DropdownSetting, Vec2.make(40, 0), {
       no_trans: true,
       name: 'language',
       items: languages.map(_ => Trans.lang_key(_)),
-      selected_index: 0,
+      selected_index: languages.indexOf(settings.language),
       on_selected(i: number) {
         Trans.language = languages[i]
+        settings.language = languages[i]
+        GeneralStore.settings = settings
       }
     })
 
@@ -2368,6 +2383,7 @@ export default class Game extends Play {
     })
 
     Content.load().then(() => {
+      Trans.language = GeneralStore.settings.language
       scene_transition = this.make(SceneTransition, Vec2.zero, {})
     })
   }

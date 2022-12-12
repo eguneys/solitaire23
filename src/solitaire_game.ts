@@ -22,7 +22,7 @@ import { ticks } from './shared'
 import { RNG, random, int_random, v_random, v_random_h, v_screen, arr_random } from './util'
 import { Tween } from './tween'
 
-import { Text, RectView, Clickable, Background } from './game'
+import { TransText, Text, RectView, Clickable, Background } from './game'
   
 import { SolitaireHooks } from './hooks'
 import { BackRes, make_solitaire_back } from './solitaire_back'
@@ -37,6 +37,69 @@ import Sound from './sound'
 import { Dealer } from './solitaire'
 
 import { GameStatus } from './store'
+import { Settings as SolitaireSettings, TurningCards, TurningLimit } from 'lsolitaire'
+
+
+const setting_to_key = {
+  [TurningCards.ThreeCards]: 'three_cards',
+  [TurningCards.OneCard]: 'one_card',
+  [TurningLimit.NoLimit]: 'no_limit',
+  [TurningLimit.OnePass]: 'one_pass',
+  [TurningLimit.ThreePasses]: 'three_passes'
+}
+
+type SettingsStatusData = {
+}
+
+class SettingsStatus extends Play {
+  get data() {
+    return this._data as SettingsStatusData
+  }
+
+  turning_cards!: TransText
+  turning_limit!: TransText
+
+  set settings(settings: SolitaireSettings) {
+
+    this.turning_cards.text = setting_to_key[settings.cards]
+    this.turning_limit.text = setting_to_key[settings.limit]
+  }
+
+  _init() {
+
+    let w = 200
+    let _
+
+    _ = this.make(TransText, Vec2.zero, {
+      no_trans: true,
+      key: 'solitaire',
+      width: w * 1.5,
+      height: 200,
+      center: true,
+      color: Color.hex(0xbd3c5a)
+    })
+
+    _ = this.make(TransText, Vec2.make(w * 2, 0), {
+      key: 'turning_cards',
+      width: w,
+      height: 100,
+      center: true
+    })
+    this.turning_cards = _
+
+    _ = this.make(TransText, Vec2.make(w * 2 + w * 2, 0), {
+      key: 'turning_limit',
+      width: w,
+      height: 100,
+      center: true
+    })
+    this.turning_limit = _
+
+
+
+  }
+
+}
 
 
 const reverse_forEach = <A>(a: Array<A>, f: (_: A) => void) => {
@@ -102,6 +165,7 @@ class Stock extends Play {
 
   add_waste(cards: Array<Card>) {
     this.waste.add_cards(cards)
+    cards.forEach((card, i) => card.flip_front())
   }
 
 
@@ -180,6 +244,7 @@ export class SolitaireGame extends Play {
   dragging?: DragStack
   drag_source?: DragSource
 
+  settings_status!: SettingsStatus
 
   recycle_view!: RecycleView
 
@@ -292,6 +357,9 @@ export class SolitaireGame extends Play {
 
     this.dealer = dealer
 
+
+    this.settings_status = this.make(SettingsStatus, Vec2.make(680, 1000), {})
+
     make_solitaire_back(this).then((back_res) => {
       
       this._back_res = back_res
@@ -332,14 +400,19 @@ export class SolitaireGame extends Play {
 
     let { stock, tableus, cmd, pov } = this
 
+    this.settings_status.settings = pov.settings
+
     stock.add_stocks(pov.stock.stock.cards.map(card =>
                                                this.cards.borrow()))
 
     stock.add_waste_hidden(pov.stock.waste_hidden.cards.map(card =>
                                                             this.cards.borrow()))
     
-    stock.add_waste(pov.stock.waste.cards.map(card =>
-                                              this.cards.borrow()))
+    stock.add_waste(pov.stock.waste.cards.map(card => {
+      let _ =this.cards.borrow()
+      _.card = card
+      return _
+    }))
     n_seven.map(i => {
       let tableu = tableus[i]
       let t_pov = pov.tableus[i]

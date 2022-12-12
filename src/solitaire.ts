@@ -29,7 +29,7 @@ import { SolitaireGame } from './solitaire_game'
 
 import { Button } from './ui'
 
-import SolitaireStore from './store'
+import { SolitaireStore } from './store'
 import { Card } from './showcase'
 
 let rnd_screen_poss = [...Array(50).keys()].map(() => v_random().mul(v_screen.scale(0.8)))

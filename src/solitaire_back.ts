@@ -3,7 +3,7 @@ import { DragPov } from 'lsolitaire'
 import { SolitaireHooks } from './hooks'
 import { SolitaireGame } from './solitaire_game'
 import { FlipFront } from 'lsolitaire'
-import SolitaireStore, { GameStatus, SolitaireGameData, SolitaireGame as StoreSolitaireGame } from './store'
+import { SolitaireStore, GameStatus, SolitaireGameData, SolitaireGame as StoreSolitaireGame } from './store'
 
 export type BackRes = {
 
@@ -27,7 +27,6 @@ export async function make_solitaire_back(game: SolitaireGame) {
       new ctor(back, pov, game_data, game)._set_data(data).send()
     },
     dispose() {
-      console.log(back.game)
       SolitaireStore.save_current(back.game)
 
     },
