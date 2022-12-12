@@ -206,7 +206,7 @@ export class Recycle extends Command {
 
   resolve() {
     this.pov.recycle()
-    this.game.recycle()
+    this.game.recycle(this.pov.max_recycles - this.pov.nb_recycles)
   }
 }
 

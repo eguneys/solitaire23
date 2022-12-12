@@ -118,13 +118,35 @@ class RecycleView extends Play {
     return this._data as RecycleData
   }
 
+  disable() {
+    this.anim.play('disabled')
+  }
+
+  enable() {
+    this.anim.play('idle')
+  }
+
+  anim!: Anim
+
   _init() {
 
 
+    let anim = this.make(Anim, Vec2.make(0, 0), { name: 'recycle' })
+    this.anim = anim
 
     let self = this
     this.make(Clickable, Vec2.make(20, 20), {
       rect: Rect.make(0, 0, 140, 160),
+      on_hover() {
+        if (anim._animation !== 'disabled') {
+          anim.play('hover')
+        }
+      },
+      on_hover_end() {
+        if (anim._animation !== 'disabled') {
+          anim.play('idle')
+        }
+      },
       on_click() {
         self.data.on_recycle()
       }
@@ -375,6 +397,9 @@ export class SolitaireGame extends Play {
 
     let { dealer, stock, tableus } = this
 
+    this.recycle_view.visible = false
+    this.recycle_view.enable()
+
     let cards = [
       ...stock.free(),
       ...tableus.flatMap(_ => _.free())
@@ -399,6 +424,10 @@ export class SolitaireGame extends Play {
   _init_pov() {
 
     let { stock, tableus, cmd, pov } = this
+
+    if (pov.recycles_left === 0) {
+      this.recycle_view.disable()
+    }
 
     this.settings_status.settings = pov.settings
 
@@ -437,6 +466,9 @@ export class SolitaireGame extends Play {
 
   hit_stock(cards: Array<OCard>) {
     this.stock.hit(cards)
+    if (this.stock.can_recycle) {
+      this.recycle_view.visible = true
+    }
   }
 
 
@@ -446,7 +478,11 @@ export class SolitaireGame extends Play {
   cant_recycle() {
   }
 
-  recycle() {
+  recycle(left: number) {
+    if (left === 0) {
+      this.recycle_view.disable()
+    }
+    this.recycle_view.visible = false
     this.stock.recycle()
   }
 
@@ -503,6 +539,6 @@ export class SolitaireGame extends Play {
 
 
   game_started() {
-    console.log(this.solitaire_data.status)
+    //console.log(this.solitaire_data.status)
   }
 }
