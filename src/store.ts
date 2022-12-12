@@ -48,10 +48,11 @@ const gen_game_id = (): GameId => {
 export type GameId = `game.${string}`
 
 export enum GameStatus {
-  Won,
-  Completed,
+  Created,
   Started,
-  Incomplete
+  Incomplete,
+  Completed,
+  Won,
 }
 
 export type SolitaireGameData = {
@@ -71,7 +72,7 @@ export class SolitaireGame {
     let res = new SolitaireGame(id, solitaire)
 
     res.score = 0
-    res.status = GameStatus.Started
+    res.status = GameStatus.Created
 
     return res
   }

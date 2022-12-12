@@ -1528,6 +1528,11 @@ export class HowtoPlay2 extends Play {
       }
     })
 
+    this.make(Nine, Vec2.make(20, 180), {
+      name: 'panel_bg_nine_slice',
+      w: 1860,
+      h: 860
+    })
 
     let w = 410
     let tabs = [

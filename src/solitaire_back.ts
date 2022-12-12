@@ -3,10 +3,11 @@ import { DragPov } from 'lsolitaire'
 import { SolitaireHooks } from './hooks'
 import { SolitaireGame } from './solitaire_game'
 import { FlipFront } from 'lsolitaire'
-import SolitaireStore, { SolitaireGame as StoreSolitaireGame } from './store'
+import SolitaireStore, { GameStatus, SolitaireGameData, SolitaireGame as StoreSolitaireGame } from './store'
 
 export type BackRes = {
 
+  data: SolitaireGameData,
   pov: SolitairePov,
   cmd: (ctor: CommandType, data?: any) => void,
   dispose: () => void,
@@ -17,13 +18,16 @@ export type BackRes = {
 export async function make_solitaire_back(game: SolitaireGame) {
   let back = new SolitaireBack()
   let pov = await back.get_pov()
+  let game_data = await back.get_data()
 
   return {
     get pov() { return pov },
+    get data() { return game_data },
     cmd(ctor: CommandType, data?: any) {
-      new ctor(back, pov, game)._set_data(data).send()
+      new ctor(back, pov, game_data, game)._set_data(data).send()
     },
     dispose() {
+      console.log(back.game)
       SolitaireStore.save_current(back.game)
 
     },
@@ -31,6 +35,7 @@ export async function make_solitaire_back(game: SolitaireGame) {
       SolitaireStore.new_game()
       back = new SolitaireBack()
       pov = await back.get_pov()
+      game_data = await back.get_data()
     }
   }
 }
@@ -43,12 +48,21 @@ class SolitaireBack {
     return this.game.solitaire
   }
 
+  async get_data() {
+    return this.game.data
+  }
+
   constructor() {
     this.game = SolitaireStore.current_game
   }
 
   async get_pov() {
     return this.solitaire.pov
+  }
+
+  async start_game() {
+
+    this.game.status = GameStatus.Started
   }
 
   async hit_stock() {
@@ -74,7 +88,7 @@ export type CommandType = { new(...args: Array<any>): Command }
 
 abstract class Command {
 
-  constructor(readonly back: SolitaireBack, readonly pov: SolitairePov, readonly game: SolitaireGame) {}
+  constructor(readonly back: SolitaireBack, readonly pov: SolitairePov, readonly game_data: SolitaireGameData, readonly game: SolitaireGame) {}
 
   _set_data(data: any) {
     this._data = data
@@ -220,5 +234,26 @@ export class HitStock extends Command {
   resolve(cards: Array<Card>) {
     this.pov.hit_stock(cards)
     this.game.hit_stock(cards)
+  }
+}
+
+
+export class StartGame extends Command {
+
+  get can() {
+    return this.game_data.status === GameStatus.Created
+  }
+
+  cant() { }
+
+  wait() { }
+
+  apply_back() {
+    return this.back.start_game()
+  }
+
+  resolve() {
+    this.game_data.status = GameStatus.Started
+    this.game.game_started()
   }
 }

@@ -27,15 +27,16 @@ import { Text, RectView, Clickable, Background } from './game'
 import { SolitaireHooks } from './hooks'
 import { BackRes, make_solitaire_back } from './solitaire_back'
 import { CommandType } from './solitaire_back'
-import { HitStock, Recycle, DragTableu, DropTableu } from './solitaire_back'
+import { StartGame, HitStock, Recycle, DragTableu, DropTableu } from './solitaire_back'
 import { DragSource, DragSources } from 'lsolitaire'
-
 
 import { Card, Stack, DragStack, Tableu, Cards } from './showcase'
 
 import Sound from './sound'
 
 import { Dealer } from './solitaire'
+
+import { GameStatus } from './store'
 
 
 const reverse_forEach = <A>(a: Array<A>, f: (_: A) => void) => {
@@ -196,6 +197,10 @@ export class SolitaireGame extends Play {
     return this._back_res.pov
   }
 
+  get solitaire_data() {
+    return this._back_res.data
+  }
+
   _dispose() {
     this.on_dispose_back()
   }
@@ -280,6 +285,8 @@ export class SolitaireGame extends Play {
 
         dealer.cards.forEach(_ => self.cards.release(_))
         self._init_pov()
+        self.cmd(StartGame)
+
       }
     })
 
@@ -306,14 +313,17 @@ export class SolitaireGame extends Play {
     ]
 
     cards.forEach(_ => this.cards.release(_))
-
-    dealer.cards = OCards.deck.map(card => {
-      let res = this.cards.borrow()
-      res.card = card
-      res.flip_front()
-      return res
-    })
-    dealer.begin_laydeck()
+    if (this.solitaire_data.status === GameStatus.Created) {
+      dealer.cards = OCards.deck.map(card => {
+        let res = this.cards.borrow()
+        res.card = card
+        res.flip_front()
+        return res
+      })
+      dealer.begin_laydeck()
+    } else {
+      this._init_pov()
+    }
 
 
   }
@@ -406,11 +416,20 @@ export class SolitaireGame extends Play {
   }
 
   request_new_game() {
+    if (this.solitaire_data.status === GameStatus.Created) {
+      // cant create
+      return
+    }
     this._back_res.new_game().then(() => {
       this.new_game()
     })
   }
 
   wait_new_game() {
+  }
+
+
+  game_started() {
+    console.log(this.solitaire_data.status)
   }
 }
