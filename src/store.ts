@@ -1,6 +1,7 @@
 import { storedJsonProp, StoredJsonProp } from './storage'
 import { SolitairePov, Solitaire, Cards, Settings as SolitaireSettings } from 'lsolitaire'
 import { TurningCards, TurningLimit } from 'lsolitaire'
+import { SolitaireScoresAndUndo, GameStatus } from 'lsolitaire'
 import Trans, { Language } from './trans'
 
 export type GeneralData = {
@@ -103,19 +104,9 @@ const gen_game_id = (): GameId => {
 }
 export type GameId = `game.${string}`
 
-export enum GameStatus {
-  Created,
-  Started,
-  Incomplete,
-  Completed,
-  Won,
-}
-
 export type SolitaireGameData = {
   fen: string,
-  id: GameId,
-  score: number,
-  status: GameStatus
+  id: GameId
 }
 
 
@@ -124,37 +115,29 @@ export class SolitaireGame {
   static new = (settings: SolitaireSettings) => {
 
     let id = gen_game_id()
-    let solitaire = Solitaire.make(settings, Cards.deck)
-    let res = new SolitaireGame(id, solitaire)
+    let solitaire = SolitaireScoresAndUndo.make(
+      Solitaire.make(settings, Cards.deck))
 
-    res.score = 0
-    res.status = GameStatus.Created
+    let res = new SolitaireGame(id, solitaire)
 
     return res
   }
 
   static from_data = (data: SolitaireGameData) => {
     let res = new SolitaireGame(data.id,
-                                Solitaire.from_fen(data.fen))
-    res.score = data.score
-    res.status = data.status
+                                SolitaireScoresAndUndo.from_fen(data.fen))
     return res
   }
 
   get data() {
     return {
-      fen: this.solitaire.fen,
-      id: this.id,
-      score: this.score,
-      status: this.status
+      fen: this.solitaire_game.fen,
+      id: this.id
     }
   }
 
-  status!: GameStatus
-  score!: number
-
   constructor(readonly id: GameId,
-              readonly solitaire: Solitaire) {
+              readonly solitaire_game: SolitaireScoresAndUndo) {
   }
 }
 

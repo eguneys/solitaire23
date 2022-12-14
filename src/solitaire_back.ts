@@ -2,12 +2,10 @@ import { Solitaire, Card, Cards, SolitairePov } from 'lsolitaire'
 import { DragPov } from 'lsolitaire'
 import { SolitaireHooks } from './hooks'
 import { SolitaireGame } from './solitaire_game'
-import { FlipFront } from 'lsolitaire'
-import { SolitaireStore, GameStatus, SolitaireGameData, SolitaireGame as StoreSolitaireGame } from './store'
+import { FlipFront, GameStatus } from 'lsolitaire'
+import { SolitaireStore, SolitaireGameData, SolitaireGame as StoreSolitaireGame } from './store'
 
 export type BackRes = {
-
-  data: SolitaireGameData,
   pov: SolitairePov,
   cmd: (ctor: CommandType, data?: any) => void,
   dispose: () => void,
@@ -18,11 +16,9 @@ export type BackRes = {
 export async function make_solitaire_back(game: SolitaireGame) {
   let back = new SolitaireBack()
   let pov = await back.get_pov()
-  let game_data = await back.get_data()
 
   return {
     get pov() { return pov },
-    get data() { return game_data },
     cmd(ctor: CommandType, data?: any) {
       new ctor(back, pov, game_data, game)._set_data(data).send()
     },
@@ -34,7 +30,6 @@ export async function make_solitaire_back(game: SolitaireGame) {
       SolitaireStore.new_game()
       back = new SolitaireBack()
       pov = await back.get_pov()
-      game_data = await back.get_data()
     }
   }
 }
@@ -45,10 +40,6 @@ class SolitaireBack {
 
   get solitaire() {
     return this.game.solitaire
-  }
-
-  async get_data() {
-    return this.game.data
   }
 
   constructor() {

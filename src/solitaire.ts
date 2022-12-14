@@ -349,22 +349,38 @@ export class Dealer extends Play {
 
 class ScoreBoard extends Play {
 
+  _score!: number
+
+  set score(score: number) {
+    this._score = score
+    this.score_text.text = `${score}`
+    this.score_text_shadow.text = `${score}`
+  }
+
+  get score() {
+    return this._score
+  }
+
+  score_text!: TransText
+  score_text_shadow!: TransText
+
   _init() {
+    this._score = 0
     let _ = this.make(TransText, Vec2.make(0, 25), {
       key: 'score',
       width: 80,
       height: 100
     })
-    this.make(TransText, Vec2.make(100, 6), {
+    this.score_text_shadow = this.make(TransText, Vec2.make(100, 6), {
       no_trans: true,
-      key: '1000',
+      key: `${this.score}`,
       width: 180,
       height: 100,
       color: Color.black
     })
-    this.make(TransText, Vec2.make(100, 0), {
+    this.score_text = this.make(TransText, Vec2.make(100, 0), {
       no_trans: true,
-      key: '1000',
+      key: `${this.score}`,
       width: 180,
       height: 100
     })
@@ -440,10 +456,15 @@ export class SolitairePlay extends Play {
   _init() {
 
     let sidebar: SideBar
+    let scoreboard: ScoreBoard
 
     this.make(Background, Vec2.zero, undefined)
 
-    let game = this.make(SolitaireGame, Vec2.make(0, 0), {})
+    let game = this.make(SolitaireGame, Vec2.make(0, 0), {
+      on_score(score: number) {
+        scoreboard.score = score
+      }
+    })
 
     this.make(Button, Vec2.make(160, 1000), {
       text: 'undo',
@@ -452,8 +473,7 @@ export class SolitairePlay extends Play {
       }
     })
 
-    this.make(ScoreBoard, Vec2.make(16, 860), {
-    })
+    scoreboard = this.make(ScoreBoard, Vec2.make(16, 860), {})
 
     let self = this
     let overlay = this.make(Overlay, Vec2.zero, {

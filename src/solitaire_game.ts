@@ -36,8 +36,8 @@ import Sound from './sound'
 
 import { Dealer } from './solitaire'
 
-import { GameStatus } from './store'
 import { Settings as SolitaireSettings, TurningCards, TurningLimit } from 'lsolitaire'
+import { GameStatus } from 'lsolitaire'
 
 
 const setting_to_key = {
@@ -248,6 +248,7 @@ class Stock extends Play {
 }
 
 type SolitaireGameData = {
+  on_score: (_: number) => void
 }
 
 export class SolitaireGame extends Play {
