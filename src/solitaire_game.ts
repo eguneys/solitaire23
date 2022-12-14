@@ -38,6 +38,7 @@ import { Dealer } from './solitaire'
 
 import { Settings as SolitaireSettings, TurningCards, TurningLimit } from 'lsolitaire'
 import { GameStatus } from 'lsolitaire'
+import { UndoHitArgs } from 'lsolitaire'
 
 
 const setting_to_key = {
@@ -281,12 +282,16 @@ export class SolitaireGame extends Play {
     return this._back_res.cmd
   }
 
-  get pov() {
-    return this._back_res.pov
+  get undo_pov() {
+    return this._back_res.undo_pov
   }
 
-  get solitaire_data() {
-    return this._back_res.data
+  get pov() {
+    return this.undo_pov.solitaire_pov
+  }
+
+  get solitaire_undo_pov() {
+    return this._back_res.undo_pov
   }
 
   _dispose() {
@@ -407,7 +412,7 @@ export class SolitaireGame extends Play {
     ]
 
     cards.forEach(_ => this.cards.release(_))
-    if (this.solitaire_data.status === GameStatus.Created) {
+    if (this.solitaire_undo_pov.status === GameStatus.Created) {
       dealer.cards = OCards.deck.map(card => {
         let res = this.cards.borrow()
         res.card = card
@@ -465,7 +470,8 @@ export class SolitaireGame extends Play {
   cant_hit_stock() {
   }
 
-  hit_stock(cards: Array<OCard>) {
+  hit_stock(args: UndoHitArgs) {
+    let { cards } = args
     this.stock.hit(cards)
     if (this.stock.can_recycle) {
       this.recycle_view.visible = true
@@ -493,7 +499,8 @@ export class SolitaireGame extends Play {
   drag_tableu(tableu: number, i: number) {
     let cards = this.tableus[tableu].remove_fronts(i)
 
-    Sound.play('drag')
+    let drag_123 = Math.min(3, Math.floor(i / 3) + 1)
+    Sound.play(`drag` + drag_123)
     this.dragging = this.make(DragStack, Vec2.zero, {})
     this.drag_source =  DragSources.tableu(tableu, i)
     this.dragging.cards = cards
@@ -526,7 +533,7 @@ export class SolitaireGame extends Play {
   }
 
   request_new_game() {
-    if (this.solitaire_data.status === GameStatus.Created) {
+    if (this.solitaire_undo_pov.status === GameStatus.Created) {
       // cant create
       return
     }

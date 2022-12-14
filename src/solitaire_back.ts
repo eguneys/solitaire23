@@ -1,12 +1,13 @@
 import { Solitaire, Card, Cards, SolitairePov } from 'lsolitaire'
+import { SolitaireScoresAndUndoPov } from 'lsolitaire'
 import { DragPov } from 'lsolitaire'
 import { SolitaireHooks } from './hooks'
 import { SolitaireGame } from './solitaire_game'
-import { FlipFront, GameStatus } from 'lsolitaire'
+import { UndoHitArgs, FlipFront, GameStatus } from 'lsolitaire'
 import { SolitaireStore, SolitaireGameData, SolitaireGame as StoreSolitaireGame } from './store'
 
 export type BackRes = {
-  pov: SolitairePov,
+  undo_pov: SolitaireScoresAndUndoPov,
   cmd: (ctor: CommandType, data?: any) => void,
   dispose: () => void,
 
@@ -15,12 +16,12 @@ export type BackRes = {
 
 export async function make_solitaire_back(game: SolitaireGame) {
   let back = new SolitaireBack()
-  let pov = await back.get_pov()
+  let undo_pov = await back.get_undo_pov()
 
   return {
-    get pov() { return pov },
+    get undo_pov() { return undo_pov },
     cmd(ctor: CommandType, data?: any) {
-      new ctor(back, pov, game_data, game)._set_data(data).send()
+      new ctor(back, undo_pov, game)._set_data(data).send()
     },
     dispose() {
       SolitaireStore.save_current(back.game)
@@ -29,7 +30,7 @@ export async function make_solitaire_back(game: SolitaireGame) {
     async new_game() {
       SolitaireStore.new_game()
       back = new SolitaireBack()
-      pov = await back.get_pov()
+      undo_pov = await back.get_undo_pov()
     }
   }
 }
@@ -38,21 +39,25 @@ class SolitaireBack {
 
   game: StoreSolitaireGame
 
+  get solitaire_and_undo() {
+    return this.game.solitaire_game
+  }
+
   get solitaire() {
-    return this.game.solitaire
+    return this.solitaire_and_undo.solitaire
   }
 
   constructor() {
     this.game = SolitaireStore.current_game
   }
 
-  async get_pov() {
-    return this.solitaire.pov
+  async get_undo_pov() {
+    return this.solitaire_and_undo.pov
   }
 
   async start_game() {
 
-    this.game.status = GameStatus.Started
+    this.solitaire_and_undo.status = GameStatus.Started
   }
 
   async hit_stock() {
@@ -78,7 +83,11 @@ export type CommandType = { new(...args: Array<any>): Command }
 
 abstract class Command {
 
-  constructor(readonly back: SolitaireBack, readonly pov: SolitairePov, readonly game_data: SolitaireGameData, readonly game: SolitaireGame) {}
+  get pov() {
+    return this.undo_pov.solitaire_pov
+  }
+
+  constructor(readonly back: SolitaireBack, readonly undo_pov: SolitaireScoresAndUndoPov, readonly game: SolitaireGame) {}
 
   _set_data(data: any) {
     this._data = data
@@ -221,9 +230,9 @@ export class HitStock extends Command {
     return this.back.hit_stock()
   }
 
-  resolve(cards: Array<Card>) {
-    this.pov.hit_stock(cards)
-    this.game.hit_stock(cards)
+  resolve(args: UndoHitArgs) {
+    this.pov.hit_stock(args)
+    this.game.hit_stock(args)
   }
 }
 
@@ -231,7 +240,7 @@ export class HitStock extends Command {
 export class StartGame extends Command {
 
   get can() {
-    return this.game_data.status === GameStatus.Created
+    return this.undo_pov.status === GameStatus.Created
   }
 
   cant() { }
@@ -243,7 +252,7 @@ export class StartGame extends Command {
   }
 
   resolve() {
-    this.game_data.status = GameStatus.Started
+    this.undo_pov.status = GameStatus.Started
     this.game.game_started()
   }
 }

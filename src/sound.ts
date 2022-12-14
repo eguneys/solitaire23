@@ -5,7 +5,7 @@ function load_audio(path: string): HTMLMediaElement {
   return res
 }
 
-let names = ['ding', 'drag']
+let names = ['ding', 'drag', 'drag1', 'drag2', 'drag3']
 
 
 class Sound {
