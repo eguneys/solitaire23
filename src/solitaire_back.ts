@@ -5,6 +5,8 @@ import { SolitaireHooks } from './hooks'
 import { SolitaireGame } from './solitaire_game'
 import { UndoHitArgs, FlipFront, GameStatus } from 'lsolitaire'
 import { SolitaireStore, SolitaireGameData, SolitaireGame as StoreSolitaireGame } from './store'
+import { SolitaireMove, SolitaireMoveType, HitStock as OHitStock } from 'lsolitaire'
+import { Recycle as ORecycle } from 'lsolitaire'
 
 export type BackRes = {
   undo_pov: SolitaireScoresAndUndoPov,
@@ -20,7 +22,7 @@ export async function make_solitaire_back(game: SolitaireGame) {
 
   return {
     get undo_pov() { return undo_pov },
-    cmd(ctor: CommandType, data?: any) {
+    async cmd(ctor: CommandType, data?: any) {
       new ctor(back, undo_pov, game)._set_data(data).send()
     },
     dispose() {
@@ -60,8 +62,8 @@ class SolitaireBack {
     this.solitaire_and_undo.status = GameStatus.Started
   }
 
-  async hit_stock() {
-    return this.solitaire.hit_stock()
+  async apply(_: SolitaireMoveType, data?: any) {
+    return this.solitaire_and_undo.apply(_, data)
   }
 
   async recycle() {
@@ -77,7 +79,13 @@ class SolitaireBack {
     return this.solitaire.pov
   }
 
+  async undo() {
+    let undo = this.solitaire_and_undo.undo()
+    return undo
+  }
+
 }
+
 
 export type CommandType = { new(...args: Array<any>): Command }
 
@@ -99,8 +107,10 @@ abstract class Command {
     if (this.can) {
       this.wait()
       this.apply_back()
-      .then(args =>
-            this.resolve(args))
+      .then(args => {
+        this.resolve(args)
+        this.game.on_score(this.undo_pov.score)
+      })
     } else {
       this.cant()
     }
@@ -201,12 +211,13 @@ export class Recycle extends Command {
   }
 
   apply_back() {
-    return this.back.recycle()
+    return this.back.apply(ORecycle)
   }
 
-  resolve() {
-    this.pov.recycle()
-    this.game.recycle(this.pov.max_recycles - this.pov.nb_recycles)
+  resolve(o: ORecycle) {
+    this.undo_pov.apply(o)
+    let left = this.pov.max_recycles - this.pov.nb_recycles
+    this.game.recycle(o.args, left)
   }
 }
 
@@ -227,15 +238,45 @@ export class HitStock extends Command {
   }
 
   apply_back() {
-    return this.back.hit_stock()
+    return this.back.apply(OHitStock)
   }
 
-  resolve(args: UndoHitArgs) {
-    this.pov.hit_stock(args)
-    this.game.hit_stock(args)
+  resolve(o: OHitStock) {
+    this.undo_pov.apply(o)
+    this.game.hit_stock(o.args)
   }
 }
 
+
+export class Undo extends Command {
+
+  get can() {
+    return this.undo_pov.can_undo
+  }
+
+  cant() { }
+
+  wait() { 
+    this.undo_pov.wait_undo()
+    this.game.wait_undo()
+  }
+
+  apply_back() {
+    return this.back.undo()
+  }
+
+  resolve(undo: SolitaireMove) {
+    this.undo_pov.undo(undo)
+
+    if (undo instanceof OHitStock) {
+      this.game.undo_hit_stock(undo.args)
+    }
+
+    if (undo instanceof ORecycle) {
+      this.game.undo_recycle(undo.args)
+    }
+  }
+}
 
 export class StartGame extends Command {
 

@@ -38,7 +38,9 @@ import { Dealer } from './solitaire'
 
 import { Settings as SolitaireSettings, TurningCards, TurningLimit } from 'lsolitaire'
 import { GameStatus } from 'lsolitaire'
-import { UndoHitArgs } from 'lsolitaire'
+import { UndoHitArgs, UndoRecycleArgs } from 'lsolitaire'
+import { Undo } from './solitaire_back'
+import { SolitaireMove } from 'lsolitaire'
 
 
 const setting_to_key = {
@@ -197,6 +199,20 @@ class Stock extends Play {
     this.stock.add_cards(cards)
   }
 
+  undo_hit(ocards: Array<OCard>, owaste: Array<OCard>) {
+
+    let waste_to_stock = this.waste.remove_cards(ocards.length)
+    let waste_hidden_to_waste = this.waste_hidden.remove_cards(owaste.length)
+    this.waste.add_cards(waste_hidden_to_waste)
+
+    waste_hidden_to_waste.forEach((_, i) => {
+      _.card = owaste[i]
+      _.flip_front()
+    })
+    waste_to_stock.forEach(card => card.flip_back())
+    this.stock.add_cards(waste_to_stock)
+  }
+
   hit(ocards: Array<OCard>) {
     let cards = this.stock.remove_cards(ocards.length)
 
@@ -222,6 +238,24 @@ class Stock extends Play {
     cards.forEach(card => card.send_front())
 
     this.stock.add_cards(cards)
+  }
+
+
+  undo_recycle(args: UndoRecycleArgs) {
+
+    let { cards, waste } = args 
+
+
+    let stock_to_hidden = this.stock.remove_cards(cards)
+
+    this.waste_hidden.add_cards(stock_to_hidden)
+
+    let hidden_to_waste = this.waste_hidden.remove_cards(waste)
+
+    stock_to_hidden.forEach(_ => _.flip_front())
+    hidden_to_waste.forEach(_ => _.flip_front())
+
+    this.waste.add_cards(hidden_to_waste)
   }
 
   stock!: Stack
@@ -434,6 +468,9 @@ export class SolitaireGame extends Play {
     if (pov.recycles_left === 0) {
       this.recycle_view.disable()
     }
+    if (pov.can_recycle) {
+      this.recycle_view.visible = true
+    }
 
     this.settings_status.settings = pov.settings
 
@@ -470,6 +507,12 @@ export class SolitaireGame extends Play {
   cant_hit_stock() {
   }
 
+  undo_hit_stock(args: UndoHitArgs) {
+    let { cards, waste } = args
+    this.stock.undo_hit(cards, waste)
+    this.recycle_view.visible = false
+  }
+
   hit_stock(args: UndoHitArgs) {
     let { cards } = args
     this.stock.hit(cards)
@@ -485,12 +528,18 @@ export class SolitaireGame extends Play {
   cant_recycle() {
   }
 
-  recycle(left: number) {
+  recycle(args: UndoRecycleArgs, left: number) {
     if (left === 0) {
       this.recycle_view.disable()
     }
     this.recycle_view.visible = false
     this.stock.recycle()
+  }
+
+  undo_recycle(args: UndoRecycleArgs) {
+    this.recycle_view.visible = true
+    this.recycle_view.enable()
+    this.stock.undo_recycle(args)
   }
 
   cant_drag_tableu(tableu: number, i: number) {
@@ -545,8 +594,18 @@ export class SolitaireGame extends Play {
   wait_new_game() {
   }
 
+  request_undo() {
+    this.cmd(Undo)
+  }
+  wait_undo() {
+  }
 
   game_started() {
     //console.log(this.solitaire_data.status)
+  }
+
+
+  on_score(score: number) {
+    this.data.on_score(score)
   }
 }

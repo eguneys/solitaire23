@@ -469,7 +469,7 @@ export class SolitairePlay extends Play {
     this.make(Button, Vec2.make(160, 1000), {
       text: 'undo',
       on_click() {
-        console.log('undo')
+        game.request_undo()
       }
     })
 
