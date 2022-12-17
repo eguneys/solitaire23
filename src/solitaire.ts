@@ -18,19 +18,12 @@ import { Anim } from './anim'
 import { TransText, Text, RectView, Clickable, Background, MainMenu2 } from './game'
 import { About2, Settings2, HowtoPlay2 } from './game'
 import { scene_transition }from './game'
-
-import { n_seven, card_sort_key, Cards, Card as OCard, SolitairePov, Solitaire } from 'lsolitaire'
-
 import { ticks } from './shared'
 import { RNG, random, int_random, v_random, v_random_h, v_screen, arr_random } from './util'
 import { Tween } from './tween'
-
-import { SolitaireGame } from './solitaire_game'
-
 import { Button } from './ui'
-
-import { SolitaireStore } from './store'
 import { Card } from './showcase'
+import { SolitaireGame, card_sort_key } from './solitaire_game'
 
 let rnd_screen_poss = [...Array(50).keys()].map(() => v_random().mul(v_screen.scale(0.8)))
 

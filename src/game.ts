@@ -26,8 +26,9 @@ import Sound from './sound'
 
 import Trans, { languages } from './trans'
 
-import { TurningCards, TurningLimit } from 'lsolitaire'
-import { SolitaireStore, GeneralStore } from './store'
+import { limit_settings, cards_settings, SolitaireStore, GeneralStore } from './store'
+
+
 
 type RectData = {
   w: number,
@@ -1848,30 +1849,22 @@ class SolitaireSettings extends Play {
 
   _init() {
 
-    let settings = SolitaireStore.settings
-
-    let cards_settings = [TurningCards.ThreeCards, TurningCards.OneCard]
     let h = 220
     let turning_cards_setting = this.make(DropdownSetting, Vec2.make(40, 0), {
       name: 'turning_cards',
       items: ['three_cards', 'one_card'],
-      selected_index: cards_settings.indexOf(settings.cards),
+      selected_index: cards_settings.indexOf(SolitaireStore.cards),
       on_selected(i: number) {
-        let settings = SolitaireStore.settings
-        settings.cards = cards_settings[i]
-        SolitaireStore.settings = settings
+        SolitaireStore.cards = cards_settings[i]
       }
     })
 
-    let limit_settings = [TurningLimit.NoLimit, TurningLimit.ThreePasses, TurningLimit.OnePass]
     let turning_limit_setting = this.make(DropdownSetting, Vec2.make(40, h * 1), {
       name: 'turning_limit',
       items: ['no_limit', 'three_passes', 'one_pass'],
-      selected_index: limit_settings.indexOf(settings.limit),
+      selected_index: limit_settings.indexOf(SolitaireStore.limit),
       on_selected(i: number) {
-        let settings = SolitaireStore.settings
-        settings.limit = limit_settings[i]
-        SolitaireStore.settings = settings
+        SolitaireStore.limit = limit_settings[i]
       }
     })
 
@@ -1911,17 +1904,15 @@ class GeneralSettings extends Play {
 
   _init() {
 
-    let settings = GeneralStore.settings
     let h = 220
     let language_setting = this.make(DropdownSetting, Vec2.make(40, 0), {
       no_trans: true,
       name: 'language',
       items: languages.map(_ => Trans.lang_key(_)),
-      selected_index: languages.indexOf(settings.language),
+      selected_index: languages.indexOf(GeneralStore.language),
       on_selected(i: number) {
         Trans.language = languages[i]
-        settings.language = languages[i]
-        GeneralStore.settings = settings
+        GeneralStore.language = languages[i]
       }
     })
 
@@ -2383,7 +2374,7 @@ export default class Game extends Play {
     })
 
     Content.load().then(() => {
-      Trans.language = GeneralStore.settings.language
+      Trans.language = GeneralStore.language
       scene_transition = this.make(SceneTransition, Vec2.zero, {})
     })
   }

@@ -715,12 +715,20 @@ export class Tableu extends Play {
     this.fronts.add_cards([card])
     let self = this
     this.fronts.top_card.bind_drag((e: Vec2) => {
-      self.data.on_front_drag(0, e)
+      self.data.on_front_drag(1, e)
     })
     this.fronts.top_card.bind_drop(() => {
       self.data.on_front_drop()
 
     })
+  }
+
+  flip_back() {
+    let [card] = this.fronts.remove_cards(1)
+    card.flip_back()
+    this.backs.add_cards([card])
+    this.fronts.ease_position(this.top_back_position)
+    card.bind_drop(undefined)
   }
 
   backs!: Stack

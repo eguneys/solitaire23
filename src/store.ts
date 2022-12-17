@@ -1,253 +1,41 @@
-import { storedJsonProp, StoredJsonProp } from './storage'
-import { SolitairePov, Solitaire, Cards, Settings as SolitaireSettings } from 'lsolitaire'
-import { TurningCards, TurningLimit } from 'lsolitaire'
-import { SolitaireScoresAndUndo, GameStatus } from 'lsolitaire'
-import Trans, { Language } from './trans'
+import { Language } from './trans'
+import { TurningLimit, TurningCards } from 'lsolitaire'
 
-export type GeneralData = {
-  language: Language,
-  sound: boolean
-}
+export let limit_settings: Array<TurningLimit> = ['nolimit', 'threepass', 'onepass']
+export let cards_settings: Array<TurningCards> = ['threecards', 'onecard']
 
-const default_general = {
-  language: Trans.default_language,
-  sound: true
-}
+class SolitaireStore {
 
-export class General {
-  static new = () => {
-    return new General(default_general)
+  get cards() {
+    return 'threecards'
   }
 
-
-  static from_data = (data: GeneralData) => {
-    return new General(data)
+  set cards(_: TurningCards) {
   }
 
-  get language() {
-    return this.data.language
+  get limit() {
+    return 'nolimit'
   }
 
-  get sound() {
-    return this.data.sound
-  }
-
-  set language(_: Language) {
-    this.data.language = _
-  }
-
-  set sound(_: boolean) {
-    this.data.sound = _
-  }
-
-  constructor(readonly data: GeneralData) {
-  }
-}
-
-
-
-const default_settings = {
-  cards: TurningCards.ThreeCards,
-  limit: TurningLimit.NoLimit
-}
-
-export type SolitaireGamesData = {
-  settings: SolitaireSettings
-  games: Array<SolitaireGameData>
-}
-
-
-export class SolitaireGames {
-
-  static new = (settings: SolitaireSettings) => {
-    return new SolitaireGames(settings, [])
-  }
-
-  static from_data = (data: SolitaireGamesData) => {
-    return new SolitaireGames(data.settings, data.games)
-  }
-
-  get data() {
-    return {
-      games: this.games,
-      settings: this.settings
-    }
-  }
-
-  add(game: SolitaireGameData) {
-    let i = this.games.findIndex(_ => _.id === game.id)
-    if (i !== -1) {
-      this.games.splice(i, 1, game)
-    } else {
-      this.games.push(game)
-    }
-  }
-  
-  settings!: SolitaireSettings
-
-  constructor(settings: SolitaireSettings,
-              readonly games: Array<SolitaireGameData>) {
-              
-                this.settings = settings
-              }
-
-}
-
-
-
-const s4 = () => {
-  return Math.random().toString(36).substring(2, 10)
-}
-
-const gen_game_id = (): GameId => {
-  return `game.${s4()}`
-}
-export type GameId = `game.${string}`
-
-export type SolitaireGameData = {
-  fen: string,
-  id: GameId
-}
-
-
-export class SolitaireGame {
-
-  static new = (settings: SolitaireSettings) => {
-
-    let id = gen_game_id()
-    let solitaire = SolitaireScoresAndUndo.make(
-      Solitaire.make(settings, Cards.deck))
-
-    let res = new SolitaireGame(id, solitaire)
-
-    return res
-  }
-
-  static from_data = (data: SolitaireGameData) => {
-    let res = new SolitaireGame(data.id,
-                                SolitaireScoresAndUndo.from_fen(data.fen))
-    return res
-  }
-
-  get data() {
-    return {
-      fen: this.solitaire_game.fen,
-      id: this.id
-    }
-  }
-
-  constructor(readonly id: GameId,
-              readonly solitaire_game: SolitaireScoresAndUndo) {
+  set limit(_: TurningLimit) {
   }
 }
 
 
 class GeneralStore {
 
-  _key(key: string) {
-    return [`lisotaire`, `general`, key].join('.')
+  get language() {
+    return 'en'
   }
 
-  _prop<T>(key: string, value: T) {
-    return storedJsonProp(this._key(key), () => value)
-  }
-
-  _general!: StoredJsonProp<GeneralData>
-
-  set settings(general: General) {
-    this._general(general.data)
-  }
-
-  get settings() {
-    return General.from_data(this._general())
-  }
-
-
-  constructor() {
-    this._general = this._prop<GeneralData>('general', General.new().data)
-  }
-
-
-}
-
-class SolitaireStore {
-
-  _key(key: string) {
-    return [`lisotaire`, `solitaire`, key].join('.')
-  }
-
-  _prop<T>(key: string, value: T) {
-    return storedJsonProp(this._key(key), () => value)
-  }
-
-  _current_game!: StoredJsonProp<SolitaireGameData>
-  _games!: StoredJsonProp<SolitaireGamesData>
-
-  set games(games: SolitaireGames) {
-    this._games(games.data)
-  }
-
-  get games() {
-    return SolitaireGames.from_data(this._games())
-  }
-
-  get settings() {
-    return this.games.settings
-  }
-
-  set settings(settings: SolitaireSettings) {
-    let games = this.games
-    games.settings = settings
-
-    this.games = games
-
-  }
-
-  get current_game() {
-    return SolitaireGame.from_data(this._current_game())
-  }
-
-  set current_game(game: SolitaireGame) {
-    this._current_game(game.data)
-  }
-
-  save_current(game?: SolitaireGame) {
-    if (game) {
-      this.current_game = game
-    }
-    let current = this.current_game
-    let games = this.games
-    games.add(current.data)
-
-    this.games = games
-  }
-
-
-  new_game() {
-    let games = this.games
-    games.add(this.current_game.data)
-    this.games = games
-
-    this.current_game = SolitaireGame.new(games.settings)
-
-    return this.current_game
-  }
-
-
-
-
-
-  constructor() {
-    this._games = this._prop<SolitaireGamesData>('games', SolitaireGames.new(default_settings).data)
-
-    this._current_game = this._prop<SolitaireGameData>('current_game', 
-                                                       SolitaireGame.new(this.settings).data)
+  set language(_: Language) {
   }
 
 }
 
-const solitaire_store = new SolitaireStore()
-const general_store = new GeneralStore()
+let solitaire = new SolitaireStore()
+let general = new GeneralStore()
 
-export { solitaire_store as SolitaireStore }
-export { general_store as GeneralStore }
+export { solitaire as SolitaireStore }
+export { general as GeneralStore }
+
