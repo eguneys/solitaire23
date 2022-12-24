@@ -118,3 +118,13 @@ front
 
 
 
+- Sounds
+
+ - cancel
+ - hit stock
+ - recycle stock
+ - hover stack gap
+ - drop card 1 2 3
+ - drop foundation
+ - undo
+ 

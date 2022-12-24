@@ -457,6 +457,57 @@ export class Card extends Play {
 }
 
 
+export class CardDropTarget extends Play {
+
+
+  _on_drop?: DropHook
+  bind_drop(e?: DropHook) {
+    this._on_drop = e
+  }
+
+  _will_hover!: boolean
+  _will_hover_end!: boolean
+
+  anim!: Anim
+
+  _init() {
+
+    this.anim = this._make(Anim, Vec2.make(0, 0), { name: 'card' })
+    this.anim.origin = Vec2.make(88, 120)
+
+    let self = this
+    this.make(Clickable, Vec2.make(16, 16).sub(this.anim.origin), {
+      rect: Rect.make(0, 0, 170, 210),
+      on_hover() {
+        if (self._on_drop) {
+          self._will_hover = true
+          return true
+        }
+        return false
+      },
+      on_hover_end() {
+        self._will_hover_end = true
+      },
+      on_drop() {
+        if (self._on_drop) {
+          self._on_drop()
+        }
+      }
+    })
+  }
+
+  _update() {
+
+    if (this._will_hover) {
+      this._will_hover = false
+    }
+
+    if (this._will_hover_end) {
+      this._will_hover_end = false
+    }
+
+  }
+}
 
 
 let i = 0
@@ -548,7 +599,7 @@ export class Stack extends Play {
   }
 
   remove_cards(n: number) {
-    let cards = this.cards.splice(-n)
+    let cards = this.cards.splice(this.cards.length - n, this.cards.length)
     this._reposition()
     return cards
   }
@@ -685,6 +736,7 @@ export class Tableu extends Play {
     this.fronts.top_card?.bind_drop(() => {
       self.data.on_front_drop()
     })
+    this.open_drop_target()
   }
 
   remove_fronts(i: number) {
@@ -703,6 +755,8 @@ export class Tableu extends Play {
     this.fronts.top_card?.bind_drop(() => {
       self.data.on_front_drop()
     })
+
+    this.open_drop_target()
     return cards
   }
 
@@ -723,6 +777,14 @@ export class Tableu extends Play {
     })
   }
 
+  get empty() {
+    return this.fronts.length === 0 && this.backs.length === 0
+  }
+
+  open_drop_target() {
+    this.drop_target.visible = this.empty
+  }
+
   flip_back() {
     let [card] = this.fronts.remove_cards(1)
     card.flip_back()
@@ -733,10 +795,19 @@ export class Tableu extends Play {
 
   backs!: Stack
   fronts!: Stack
+  drop_target!: CardDropTarget
 
   _init() {
+
+    this.drop_target = this.make(CardDropTarget, Vec2.make(0, 0), {})
+    this.drop_target.bind_drop(() => {
+      this.data.on_front_drop()
+    })
+
     this.backs = this.make(Stack, Vec2.make(0, 0), { h: 33 })
     this.fronts = this.make(Stack, Vec2.make(0, 0), {})
+
+    this.open_drop_target()
   }
 
 
