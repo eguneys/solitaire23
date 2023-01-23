@@ -15,3 +15,4 @@ cd aset
 pnpm install
 pnpm bundle
 pnpm link --dir ./ --global
+cd ..
