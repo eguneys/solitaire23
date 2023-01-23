@@ -7,7 +7,7 @@ export default async function pack() {
 
   let sprites = []
 
-  await Promise.all(['./content/sprites', './content/fx'].map(_ =>
+  await Promise.all(['./content/sprites'].map(_ =>
     ase_files(_)
     .then(_ => _.map(({name, ase}) => {
 

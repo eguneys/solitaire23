@@ -6,7 +6,7 @@ function load_audio(path: string): HTMLMediaElement {
 }
 
 let names = [
-  'ding', 'drag', 'drag1', 'drag2', 'drag3',
+  'drag1', 'drag2', 'drag3',
   'cancel', 'drop', 'hit', 'recycle', 'undo2'
 ]
 

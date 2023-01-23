@@ -19,7 +19,7 @@ import { Tween } from './tween'
 
 import { Text, RectView, Clickable, Background } from './game'
 import { Button } from './ui'
-import { Suit, Cards as OCards, Card as OCard, CardPov, hidden_card } from 'lsolitaire'
+import { Rank, Suit, Cards as OCards, Card as OCard, CardPov, hidden_card } from 'lsolitaire'
 
 import { v_random, arr_random } from './util'
 
@@ -27,6 +27,7 @@ type DragHook = (e: Vec2) => void
 type DropHook = () => void
 
 const suit_long: Record<Suit, string> = { 's': 'spades', 'd': 'diamonds', 'h': 'hearts', 'c': 'clubs' }
+const rank_long: Record<Rank, string> = { 'A': 'a', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9', 'T': 't', 'J': 'j', 'Q': 'q', 'K': 'k' }
 
 export class SuitRankDecoration extends Play {
 
@@ -42,19 +43,21 @@ export class SuitRankDecoration extends Play {
 
   set card(card: CardPov) {
     this._card = card
+    this.rank.play_now(rank_long[card[1] as Rank])
     this.suit.play_now(suit_long[card[0] as Suit])
     this.rsuit.play_now(suit_long[card[0] as Suit])
     this.decsuit.forEach(_ => _.play_now(suit_long[card[0] as Suit]))
 
   }
 
+  rank!: Anim
   rsuit!: Anim
   suit!: Anim
   decsuit!: Array<Anim>
 
   _init() {
 
-    let v_next = Vec2.make(40, 40);
+    let v_next = Vec2.make(40, 50);
     this.decsuit = [...Array(3).keys()].map(() => 
                              (v_next = v_next
                               .add(v_random()
@@ -84,6 +87,13 @@ export class SuitRankDecoration extends Play {
       return _
     })
     this.decsuit.push(...more_suits)
+
+    this.rank = this.make(Anim, Vec2.make(140, 32), { name: 'rank' })
+    this.rank.origin = Vec2.make(32, 32)
+    this.rank.play_now('a')
+    this.rank.scale = Vec2.make(0.6, 0.6)
+
+
 
 
     this.suit = this.make(Anim, Vec2.make(30, 32), { name: 'suit' })
