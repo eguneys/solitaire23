@@ -7,7 +7,7 @@ cd ..
 git clone https://github.com/eguneys/lsolitaire
 cd lsolitaire
 pnpm install
-pnpm validate
+pnpm build
 pnpm link --dir ./ --global
 cd ..
 git clone https://github.com/eguneys/aset
