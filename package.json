@@ -11,15 +11,15 @@
     "content": "node content.js"
   },
   "dependencies": {
-    "blah": "link:../blah",
-    "lsolitaire": "link:../lsolitaire"
+    "blah": "link:..\\blah",
+    "lsolitaire": "link:..\\lsolitaire",
+    "vite": "^4.5.0",
+    "vite-plugin-glsl": "^1.1.2"
   },
   "devDependencies": {
-    "aset": "link:../aset",
+    "aset": "link:..\\aset",
     "chokidar": "^3.5.3",
     "concurrently": "^7.6.0",
-    "typescript": "^4.6.4",
-    "vite": "^3.2.3",
-    "vite-plugin-glsl": "^0.5.4"
+    "typescript": "^5.2.2"
   }
 }
