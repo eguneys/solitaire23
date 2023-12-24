@@ -1928,20 +1928,38 @@ class GeneralSettings extends Play {
    */
 
 
+    let sound_settings = ['on', 'off']
     let sound_setting = this.make(DropdownSetting, Vec2.make(40, h * 1), {
       name: 'sounds',
       items: ['on', 'off'],
-      selected_index: 0,
+      selected_index: GeneralStore.sound ? 0: 1,
       on_selected(i: number) {
-        console.log(i)
+        GeneralStore.sound = sound_settings[i] === 'on'
       }
     })
+
+
+    let music_settings = ['on', 'off']
+    let music_setting = this.make(DropdownSetting, Vec2.make(40, h * 2), {
+      name: 'music',
+      items: ['on', 'off'],
+      selected_index: GeneralStore.music ? 0: 1,
+      on_selected(i: number) {
+        GeneralStore.music = music_settings[i] === 'on'
+        if (!GeneralStore.music) {
+          Sound.stop_music()
+        }
+      }
+    })
+
+
 
 
 
     this.make_box(language_setting, true)
     //this.make_box(theme_setting)
     this.make_box(sound_setting)
+    this.make_box(music_setting)
 
     this.height = h * 3 + 500
 

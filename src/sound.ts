@@ -1,3 +1,4 @@
+import { GeneralStore } from "./store"
 
 
 function load_audio(path: string): HTMLMediaElement {
@@ -15,6 +16,8 @@ class Sound {
 
   audios!: Record<string, Array<HTMLMediaElement>>
 
+  musics!: Record<string, HTMLMediaElement>
+
   load = async () => {
 
 
@@ -23,14 +26,39 @@ class Sound {
       load_audio(`./audio/${name}.wav`))
     )
 
+    this.musics = {}
+
+    this.musics['main'] = load_audio('./music/SoundBox-music.wav')
+
   }
 
   play(name: string) {
+
+    if (!GeneralStore.sound) {
+      return;
+    }
+
     let audios = this.audios[name]
 
     let audio = audios.pop()!
     audios.unshift(audio)
 
+    audio.play()
+  }
+
+  stop_music() {
+
+    this.musics['main'].pause()
+  }
+
+  music(name: string) {
+
+    if (!GeneralStore.music) {
+      return
+    }
+
+    let audio = this.musics[name]
+    audio.loop = true
     audio.play()
   }
 

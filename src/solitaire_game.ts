@@ -475,6 +475,11 @@ export class SolitaireGame extends Play {
       this.back_res = back_res
       this._collect_pov()
     })
+
+
+
+    Sound.music('main')
+
   }
 
   _release_cancel_drag() {
