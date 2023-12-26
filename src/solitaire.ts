@@ -1,3 +1,4 @@
+import Sound from './sound'
 import { TextureFilter, TextureSampler } from 'blah'
 import { Color } from 'blah'
 import { Rect, Vec2, Mat3x2 } from 'blah'
@@ -24,6 +25,8 @@ import { Tween } from './tween'
 import { Button } from './ui'
 import { Card } from './showcase'
 import { SolitaireGame, card_sort_key } from './solitaire_game'
+import { make_solitaire_back } from './solitaire_back'
+import { Settings } from 'lsolitaire'
 
 let rnd_screen_poss = [...Array(50).keys()].map(() => v_random().mul(v_screen.scale(0.8)))
 
@@ -434,6 +437,46 @@ class Overlay extends Play {
   }
 }
 
+
+class SolitaireGameTitle extends Play {
+
+  set settings(_: Settings) {
+    this.cards.text = _.cards
+    this.limit.text = _.limit
+  }
+
+  cards!: TransText
+  limit!: TransText
+
+  _init() {
+
+    let _ = this.make(TransText, Vec2.make(0, 0), {
+      no_trans: true,
+      key: 'Solitaire',
+      width: 350,
+      height: 64,
+      color: Color.white
+    })
+
+    this.cards = this.make(TransText, Vec2.make(350, 5), {
+      key: 'one_pass',
+      width: 350,
+      height: 40,
+      color: Color.white,
+    })
+
+    this.limit = this.make(TransText, Vec2.make(550, 5), {
+      key: 'no_limit',
+      width: 350,
+      height: 40,
+      color: Color.white,
+    })
+
+
+
+  }
+}
+
 export class SolitairePlay extends Play {
 
   set sidebar_open(v: boolean) {
@@ -449,15 +492,10 @@ export class SolitairePlay extends Play {
   _init() {
 
     let sidebar: SideBar
-    let scoreboard: ScoreBoard
 
     this.make(Background, Vec2.zero, undefined)
 
-    let game = this.make(SolitaireGame, Vec2.make(0, 0), {
-      on_score(score: number) {
-        scoreboard.score = score
-      }
-    })
+    let game = this.make(SolitaireGame, Vec2.make(0, 0), {})
 
     this.make(Button, Vec2.make(160, 1000), {
       text: 'undo',
@@ -466,7 +504,18 @@ export class SolitairePlay extends Play {
       }
     })
 
-    scoreboard = this.make(ScoreBoard, Vec2.make(16, 860), {})
+
+    let title = this.make(SolitaireGameTitle, Vec2.make(640, 16), {})
+    let scoreboard = this.make(ScoreBoard, Vec2.make(16, 860), {})
+
+    make_solitaire_back(game).then(back_res => {
+      game.back_res = back_res
+      game._collect_pov()
+      Sound.music('main')
+
+      title.settings = back_res.game_pov.game.settings
+    })
+
 
     let self = this
     let overlay = this.make(Overlay, Vec2.zero, {

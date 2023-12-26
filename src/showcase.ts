@@ -522,10 +522,10 @@ export class CardDropTarget extends Play {
 
 let i = 0
 export class Cards extends Play {
+  
 
   frees!: Array<Card>
   used!: Array<Card>
-
 
   borrow() {
     let card = this.frees.shift()!
@@ -705,7 +705,6 @@ type TableuData = {
 }
 
 export class Tableu extends Play {
-
   get data() {
     return this._data as TableuData
   }
@@ -717,6 +716,12 @@ export class Tableu extends Play {
   get top_back_position() {
     return this.backs.top_position
   }
+
+  release_all() {
+    return this.free()
+  }
+
+
 
   free() {
     return [

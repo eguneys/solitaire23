@@ -23,4 +23,10 @@ one_card=1 kart
 turning_limit=açma limiti
 no_limit=limitsiz
 three_passes=3 geçiş
-one_pass=1 geçiş
+onepass=1 geçiş
+threecards=3 kart
+onecard=1 kart
+nolimit=limitsiz
+threepass=3 geçiş
+onepass=1 geçiş
+

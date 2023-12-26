@@ -14,6 +14,7 @@ import { HitStock, Recycle,
   TableuToFoundation, 
   FoundationToTableu,
 } from 'lsolitaire'
+import { SolitaireStore } from './store'
 
 export type TableuDrag = {
   tableu: number,
@@ -94,7 +95,6 @@ type StockData = {
 }
 
 class Stock extends Play {
-
   get data() {
     return this._data as StockData
   }
@@ -102,6 +102,12 @@ class Stock extends Play {
   get can_recycle() {
     return this.stock.length === 0
   }
+
+  release_all() {
+    return this.free()
+  }
+
+
 
   free() {
 
@@ -131,6 +137,7 @@ class Stock extends Play {
 
 
   add_stocks(cards: Array<Card>) {
+    cards.forEach(_ => _.flip_back())
     this.stock.add_cards(cards)
   }
 
@@ -249,6 +256,14 @@ class Foundation extends Play {
   foundation!: Stack
   drop_target!: CardDropTarget
 
+
+  release_all() {
+    return this.free()
+  }
+
+  free() {
+    return this.remove_cards(this.foundation.length)
+  }
 
   add_cards(cards: Array<Card>) {
     this.foundation.add_cards(cards)
@@ -470,16 +485,6 @@ export class SolitaireGame extends Play {
       }
     })
 
-
-    make_solitaire_back(this).then(back_res => {
-      this.back_res = back_res
-      this._collect_pov()
-    })
-
-
-
-    Sound.music('main')
-
   }
 
   _release_cancel_drag() {
@@ -514,15 +519,27 @@ export class SolitaireGame extends Play {
 
   _init_pov() {
 
-    let { pov, stock, tableus } = this
+
+
+    let { pov, stock, tableus, foundations } = this
+
+
+    n_seven.map(i => {
+      let tableu = tableus[i]
+      tableu.release_all().forEach(_ => this.cards.release(_))
+    })
+    stock.release_all().forEach(_ => this.cards.release(_))
+    n_four.map(i => {
+      let foundation = foundations[i]
+      foundation.release_all().forEach(_ => this.cards.release(_))
+    })
 
     this.recycle_view.visible = pov.can_recycle
 
     stock.add_stocks(pov.stock.stock.cards.map(card => this.cards.borrow()))
 
-
-
     n_seven.map(i => {
+
       let tableu = tableus[i]
       let t_pov = pov.tableus[i]
 
@@ -549,6 +566,10 @@ export class SolitaireGame extends Play {
     } else {
       this.recycle_view.disable()
     }
+  }
+
+  new_game() {
+    this._collect_pov()
   }
 
   undo(res: IMove<SolitairePov, Solitaire>) {
@@ -688,6 +709,7 @@ export class SolitaireGame extends Play {
   }
 
   request_new_game() {
+    this.back_res.new_game()
   }
 }
 

@@ -1,5 +1,5 @@
 import { Language } from './trans'
-import { TurningLimit, TurningCards } from 'lsolitaire'
+import { TurningLimit, TurningCards, Settings, Solitaire, Cards } from 'lsolitaire'
 
 import { StoredJsonProp, storedJsonProp } from './storage'
 
@@ -10,19 +10,42 @@ export let cards_settings: Array<TurningCards> = ['threecards', 'onecard']
 class SolitaireStore {
 
   get cards() {
-    return 'threecards'
+    return this._cards()
   }
 
   set cards(_: TurningCards) {
+    this._cards(_)
   }
 
+
+  _cards!: StoredJsonProp<TurningCards>
+
+
   get limit() {
-    return 'nolimit'
+    return this._limit()
   }
 
   set limit(_: TurningLimit) {
+    this._limit(_)
+  }
+
+  _limit!: StoredJsonProp<TurningLimit>
+
+
+  get general_settings(): Settings {
+    let { limit, cards } = this
+    return { limit, cards }
+  }
+
+  constructor() {
+    let def_cards: TurningCards = 'threecards'
+    this._cards = storedJsonProp('cards', () => def_cards)
+
+    let def_limit: TurningLimit = 'nolimit'
+    this._limit = storedJsonProp('limit', () => def_limit)
   }
 }
+
 
 
 class GeneralStore {
