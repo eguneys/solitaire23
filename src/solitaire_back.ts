@@ -1,5 +1,5 @@
 import { SolitaireGame } from './solitaire_game'
-import { Settings, Cards, Solitaire, SolitairePov, Game as OSolitaireGame, GamePov, IMoveType } from 'lsolitaire'
+import { Settings, Cards, Solitaire, SolitairePov, Game as OSolitaireGame, GamePov, IMoveType, TableuToTableu } from 'lsolitaire'
 import { SolitaireStore } from './store'
 import { arr_random } from './util'
 
@@ -11,7 +11,7 @@ export type BackRes = {
 }
 
 
-export const make_solitaire_back = async (game: SolitaireGame, on_score: (_: number) => void, on_settings: (_: Settings) => void): Promise<BackRes> => {
+export const make_solitaire_back = async (game: SolitaireGame, on_score: (_: number) => void): Promise<BackRes> => {
 
   let back = solitaire_back
   let game_pov = await back.get_pov()
@@ -28,6 +28,10 @@ export const make_solitaire_back = async (game: SolitaireGame, on_score: (_: num
             game.cant(cmd, data)
           } else {
             game.apply(res)
+
+            game_pov.finalize_apply_pov(res)
+
+            back.get_pov().then(_ => on_score(_.score))
           }
         })
       } else {
@@ -37,12 +41,15 @@ export const make_solitaire_back = async (game: SolitaireGame, on_score: (_: num
     undo() {
       if (game_pov.can_undo) {
         game_pov.undo_pov()
+
         back.undo().then(res => {
           if (!res) {
             game.cant_undo()
           } else {
             game_pov.undo(res)
             game.undo(res)
+
+            back.get_pov().then(_ => on_score(_.score))
           }
         })
       } else {
@@ -55,6 +62,8 @@ export const make_solitaire_back = async (game: SolitaireGame, on_score: (_: num
       game_pov = await solitaire_back.get_pov()
       
       game.new_game()
+
+      back.get_pov().then(_ => on_score(_.score))
     }
   }
 

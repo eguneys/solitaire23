@@ -119,6 +119,7 @@ class Stock extends Play {
   }
 
   add_waste_hidden(cards: Array<Card>) {
+    cards.forEach(_ => _.flip_back())
     this.waste_hidden.add_cards(cards)
   }
 
@@ -534,9 +535,16 @@ export class SolitaireGame extends Play {
       foundation.release_all().forEach(_ => this.cards.release(_))
     })
 
-    this.recycle_view.visible = pov.can_recycle
+    this._refresh_recycle()
+    //this.recycle_view.visible = pov.can_recycle
 
+    stock.add_waste_hidden(pov.stock.hidden.cards.map(card => this.cards.borrow()))
     stock.add_stocks(pov.stock.stock.cards.map(card => this.cards.borrow()))
+    stock.add_waste(pov.stock.waste.cards.map(card => {
+      let _ = this.cards.borrow()
+      _.card = card
+      return _
+    }))
 
     n_seven.map(i => {
 
@@ -692,7 +700,13 @@ export class SolitaireGame extends Play {
 
 
   cant(cmd: IMoveType<SolitairePov, Solitaire>, data: any) {
-    if (cmd === TableuToFoundation) {
+    if (cmd === WasteToTableu) {
+      this._release_cancel_drag()
+    } else if (cmd === WasteToFoundation) {
+      this._release_cancel_drag()
+    } else if (cmd === TableuToTableu) {
+      this._release_cancel_drag()
+    } else if (cmd === TableuToFoundation) {
       this._release_cancel_drag()
     } else if (cmd === WasteToFoundation) {
       this._release_cancel_drag()

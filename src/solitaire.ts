@@ -508,7 +508,11 @@ export class SolitairePlay extends Play {
     let title = this.make(SolitaireGameTitle, Vec2.make(640, 16), {})
     let scoreboard = this.make(ScoreBoard, Vec2.make(16, 860), {})
 
-    make_solitaire_back(game).then(back_res => {
+    const on_score = (_: number) => {
+      scoreboard.score = _
+    }
+
+    make_solitaire_back(game, on_score).then(back_res => {
       game.back_res = back_res
       game._collect_pov()
       Sound.music('main')
