@@ -477,6 +477,123 @@ class SolitaireGameTitle extends Play {
   }
 }
 
+
+
+class OneConfetti extends Play {
+
+  get data() {
+    return this._data as GameConfettiData
+  }
+
+  ax: number = 0
+  ay: number = 0
+
+  vx: number = 0
+  vy: number = 0
+
+  _init() {
+
+    let two = Math.random() < 0.3 ? '2': ''
+
+    let _: Anim = this.make(Anim, Vec2.make(0, 0), {
+        name: 'confetti' + two
+      })
+    _.play_o('idle', { loop: true })
+    let s = 0.5 + Math.random() * 0.8
+      _.scale = Vec2.make(s, s)
+      _.rotation = Math.PI * Math.random()
+
+      this.vx = 100 + Math.random() * 100
+      this.vy = -100 + Math.random() * 100
+
+      this.vx *= this.data.sign
+
+      this.ax = this.vx * 10
+      this.ay = this.vy * 10
+  }
+
+  _update() {
+    this.position.x += this.vx * Time.delta
+    this.position.y += this.vy * Time.delta
+
+    this.position.x += this.ax * Time.delta
+    this.position.y += this.ay * Time.delta
+
+    this.ax = appr(this.ax, 0, Time.delta * 1000)
+    this.ay = appr(this.ay, 0, Time.delta * 1000)
+
+    if (this.position.x > 2000) {
+      this.dispose()
+    }
+  }
+}
+
+
+type GameConfettiData = {
+  sign: number
+}
+
+class GameConfettiPop extends Play {
+
+  get data() {
+    return this._data as GameConfettiData
+  }
+
+  _init() {
+
+    this.pop_confetti()
+
+    if (this.data.sign < 0) {
+
+    let _ = this.make(Anim, Vec2.make(0, 700), {
+      name: 'confbar'
+    })
+    this.tween(
+      [Math.PI, 0, Math.PI * 0.3, Math.PI * 0.16, 0],  (v) => _.rotation = v, 
+      [ticks.half, ticks.lengths, ticks.thirds, ticks.thirds])
+
+    } else {
+
+    let _ = this.make(Anim, Vec2.make(1920, 700), {
+      name: 'confbar'
+    })
+    _.scale = Vec2.make(-1, 1)
+    this.tween(
+      [-Math.PI, 0, -Math.PI * 0.3, -Math.PI * 0.16, 0],  (v) => _.rotation = v, 
+      [ticks.half, ticks.lengths, ticks.thirds, ticks.thirds])
+
+
+    }
+
+  }
+
+  life: number = 0
+
+  _update() {
+    if (this.life < 6 && Time.on_interval(ticks.seconds * 2)) {
+      this.pop_confetti()
+      this.life ++
+    }
+  }
+  pop_confetti() {
+    for (let i = 0; i < 6; i++) {
+      this.make(OneConfetti, Vec2.make(this.data.sign > 0 ? -500 + i * 100 : 1920 - i * 100, 1080 -i * 300 * Math.random()), { sign: this.data.sign })
+    }
+  }
+
+}
+
+
+class GameOverConfetti extends Play {
+
+  pop() {
+
+    Sound.play('Win')
+    this.make(GameConfettiPop, Vec2.make(0, 0), {sign: 1})
+    this.make(GameConfettiPop, Vec2.make(0, 0), {sign: -1})
+  }
+}
+
 export class SolitairePlay extends Play {
 
   set sidebar_open(v: boolean) {
@@ -489,13 +606,23 @@ export class SolitairePlay extends Play {
   sidebar!: SideBar
   overlay!: Overlay
 
+  over_confetties: GameOverConfetti[] = []
+
   _init() {
 
     let sidebar: SideBar
 
     this.make(Background, Vec2.zero, undefined)
 
+    this.over_confetties.push(
+      this.make(GameOverConfetti, Vec2.make(0, 0), {})
+    )
+
     let game = this.make(SolitaireGame, Vec2.make(0, 0), {})
+
+    this.over_confetties.push(
+      this.make(GameOverConfetti, Vec2.make(0, 0), {})
+    )
 
     this.make(Button, Vec2.make(160, 1000), {
       text: 'undo',
@@ -552,6 +679,16 @@ export class SolitairePlay extends Play {
 
     this.sidebar_open = false
 
+    setTimeout(() => {
+
+      this.game_over_confetti_pop()
+    }, 1000)
+
+  }
+
+
+  game_over_confetti_pop() {
+    this.over_confetties.forEach(_ => _.pop())
   }
 }
 
