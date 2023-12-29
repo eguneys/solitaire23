@@ -11,7 +11,9 @@ export type BackRes = {
 }
 
 
-export const make_solitaire_back = async (game: SolitaireGame, on_score: (_: number) => void): Promise<BackRes> => {
+export const make_solitaire_back = async (game: SolitaireGame, 
+  on_score: (_: number) => void,
+  on_new_game: (_: Settings) => void): Promise<BackRes> => {
 
   let back = solitaire_back
   let game_pov = await back.get_pov()
@@ -64,6 +66,7 @@ export const make_solitaire_back = async (game: SolitaireGame, on_score: (_: num
       game.new_game()
 
       back.get_pov().then(_ => on_score(_.score))
+      back.get_pov().then(_ => on_new_game(_.game.settings))
     }
   }
 

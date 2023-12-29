@@ -700,7 +700,9 @@ export class SolitaireGame extends Play {
 
 
   cant(cmd: IMoveType<SolitairePov, Solitaire>, data: any) {
-    if (cmd === WasteToTableu) {
+    if (cmd === FoundationToTableu) {
+      this._release_cancel_drag()
+    } else if (cmd === WasteToTableu) {
       this._release_cancel_drag()
     } else if (cmd === WasteToFoundation) {
       this._release_cancel_drag()

@@ -512,7 +512,11 @@ export class SolitairePlay extends Play {
       scoreboard.score = _
     }
 
-    make_solitaire_back(game, on_score).then(back_res => {
+    const on_new_game = (_: Settings) => {
+      title.settings = _
+    }
+
+    make_solitaire_back(game, on_score, on_new_game).then(back_res => {
       game.back_res = back_res
       game._collect_pov()
       Sound.music('main')
