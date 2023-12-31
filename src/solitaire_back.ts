@@ -1,5 +1,5 @@
 import { SolitaireGame } from './solitaire_game'
-import { Settings, Cards, Solitaire, SolitairePov, Game as OSolitaireGame, GamePov, IMoveType, TableuToTableu } from 'lsolitaire'
+import { Settings, Cards, Solitaire, SolitairePov, Game as OSolitaireGame, GamePov, IMoveType, TableuToTableu, IMove, TableuToFoundation, WasteToFoundation } from 'lsolitaire'
 import { SolitaireStore } from './store'
 import { arr_random } from './util'
 

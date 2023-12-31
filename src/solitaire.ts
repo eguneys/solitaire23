@@ -24,9 +24,9 @@ import { RNG, random, int_random, v_random, v_random_h, v_screen, arr_random } f
 import { Tween } from './tween'
 import { Button } from './ui'
 import { Card } from './showcase'
-import { SolitaireGame, card_sort_key } from './solitaire_game'
+import { SolitaireGame } from './solitaire_game'
 import { make_solitaire_back } from './solitaire_back'
-import { Settings } from 'lsolitaire'
+import { card_sort_key, Settings } from 'lsolitaire'
 import { Nine } from './nine'
 
 let rnd_screen_poss = [...Array(50).keys()].map(() => v_random().mul(v_screen.scale(0.8)))

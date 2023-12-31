@@ -1,5 +1,5 @@
 import Sound from './sound'
-import { Rect, Vec2 } from 'blah'
+import { Rect, Time, Vec2 } from 'blah'
 import { Play } from './play'
 import { Anim } from './anim'
 import { Clickable } from './game'
@@ -15,6 +15,8 @@ import { HitStock, Recycle,
   FoundationToTableu,
 } from 'lsolitaire'
 import { SolitaireStore } from './store'
+import { ticks } from './shared'
+import { appr } from './lerp'
 
 export type TableuDrag = {
   tableu: number,
@@ -344,6 +346,9 @@ export class SolitaireGame extends Play {
     return this.back_res.cmd
   }
 
+
+  trigger_auto: number = -2
+
   _init() {
 
 
@@ -380,6 +385,20 @@ export class SolitaireGame extends Play {
 
     this.stock = this.make(Stock, Vec2.make(stock_x, stock_y), {
       on_waste_click() {
+
+        if (self.click_source === 'waste') {
+          self._release_cancel_highlight()
+          let hint_data = WasteToFoundation.auto_can(self.pov)
+          if (hint_data) {
+            self.trigger_auto = -1
+            self.cmd(WasteToFoundation, hint_data)
+          }
+
+          return
+        }
+
+
+
         self._release_cancel_highlight()
         self.stock.waste.top_card.set_highlight(true)
         self.click_source = 'waste'
@@ -430,6 +449,19 @@ export class SolitaireGame extends Play {
                       let { tableu, i: _i } = self.click_source
 
                       if (tableu === i) {
+
+                        if (e === 1) {
+                          self._release_cancel_highlight()
+                          let hint_data = TableuToFoundation.auto_can(self.pov, {tableu})
+                          if (hint_data) {
+                            self.trigger_auto = -1
+                            self.cmd(TableuToFoundation, hint_data)
+                          }
+
+                          return
+                        }
+
+
                         self._release_cancel_highlight()
                         self.tableus[i].fronts.set_highlight(e, true)
                         self.click_source = { tableu: i, i: e}
@@ -830,6 +862,13 @@ export class SolitaireGame extends Play {
         this.cards.shadow_group = undefined
       })
     }
+
+    if (res instanceof TableuToFoundation || res instanceof WasteToFoundation) {
+      if (this.trigger_auto === -3) {
+        this.trigger_auto = -1
+      }
+    }
+
   }
 
   apply_pov(cmd: IMoveType<SolitairePov, Solitaire>, data: any) {
@@ -865,6 +904,29 @@ export class SolitaireGame extends Play {
   request_new_game() {
     this.back_res.new_game()
   }
-}
 
-export { card_sort_key } from 'lsolitaire'
+
+  _update() {
+    if (this.trigger_auto === -1) {
+      this.trigger_auto = ticks.half + ticks.thirds
+    } else if (this.trigger_auto > 0) {
+      this.trigger_auto = appr(this.trigger_auto, 0, Time.delta)
+    } else if (this.trigger_auto === 0) {
+      this.trigger_auto = -2
+      let hint_data = WasteToFoundation.auto_can(this.pov)
+      if (hint_data) {
+        this.cmd(WasteToFoundation, hint_data)
+        this.trigger_auto = -3
+      } else {
+        for (let i = 0; i < 7; i++) {
+          let hint_data = TableuToFoundation.auto_can(this.pov, {tableu: i})
+          if (hint_data) {
+            this.cmd(TableuToFoundation, hint_data)
+            this.trigger_auto = -3
+            break
+          }
+        }
+      }
+    }
+  }
+}
