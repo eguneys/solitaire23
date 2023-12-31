@@ -30,3 +30,5 @@ nolimit=no limit
 threepass=3 passes
 onepass=1 pass
 
+you_finished_with_score=You Finished With %d Points
+congratz=Congratulations

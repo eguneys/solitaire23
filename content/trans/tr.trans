@@ -30,3 +30,6 @@ nolimit=limitsiz
 threepass=3 geçiş
 onepass=1 geçiş
 
+you_finished_with_score=%d Puan ile bitirdiniz
+congratz=Tebrikler
+

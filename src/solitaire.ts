@@ -27,6 +27,7 @@ import { Card } from './showcase'
 import { SolitaireGame, card_sort_key } from './solitaire_game'
 import { make_solitaire_back } from './solitaire_back'
 import { Settings } from 'lsolitaire'
+import { Nine } from './nine'
 
 let rnd_screen_poss = [...Array(50).keys()].map(() => v_random().mul(v_screen.scale(0.8)))
 
@@ -594,6 +595,46 @@ class GameOverConfetti extends Play {
   }
 }
 
+type GameOverDialogData = {
+  score: number
+}
+
+class GameOverDialog extends Play {
+
+  get data() {
+    return this._data as GameOverDialogData
+  }
+
+  _init() {
+
+
+    let w = 1200
+    let h = 300
+    this.make(Nine, Vec2.make(1920/2 - w / 2, 520), {
+      name: 'panel_bg_nine_slice',
+      w,
+      h
+    })
+
+    this.make(TransText, Vec2.make(1920/2, 590), {
+      key: 'congratz',
+      width: 450,
+      height: 100,
+      color: Color.white,
+      center: true,
+    })
+
+    let _ = this.make(TransText, Vec2.make(1920/2, 700), {
+      key: `you_finished_with_score%${this.data.score}%`,
+      width: 650,
+      height: 60,
+      color: Color.white,
+      center: true
+    })
+  }
+
+}
+
 export class SolitairePlay extends Play {
 
   set sidebar_open(v: boolean) {
@@ -624,6 +665,7 @@ export class SolitairePlay extends Play {
       this.make(GameOverConfetti, Vec2.make(0, 0), {})
     )
 
+
     this.make(Button, Vec2.make(160, 1000), {
       text: 'undo',
       on_click() {
@@ -639,11 +681,22 @@ export class SolitairePlay extends Play {
       scoreboard.score = _
     }
 
+    let game_over_dialog: GameOverDialog | undefined = undefined
+
     const on_new_game = (_: Settings) => {
       title.settings = _
+      if (game_over_dialog) {
+        game_over_dialog.dispose()
+        game_over_dialog = undefined
+      }
     }
 
-    make_solitaire_back(game, on_score, on_new_game).then(back_res => {
+    const on_game_over = (score: number) => {
+      this.game_over_confetti_pop()
+      game_over_dialog = this.make(GameOverDialog, Vec2.make(0, 0), { score })
+    }
+
+    make_solitaire_back(game, on_score, on_new_game, on_game_over).then(back_res => {
       game.back_res = back_res
       game._collect_pov()
       Sound.music('main')
@@ -679,10 +732,6 @@ export class SolitairePlay extends Play {
 
     this.sidebar_open = false
 
-    setTimeout(() => {
-
-      this.game_over_confetti_pop()
-    }, 1000)
 
   }
 

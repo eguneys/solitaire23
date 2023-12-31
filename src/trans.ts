@@ -105,6 +105,25 @@ class Trans {
   }
 
   key(key: string, lang?: Language) {
+
+    let args = key.match(/([^%]*)%([^%]*)%$/)
+
+    if (args !== null) {
+      let [_, _key, arg] = args
+
+
+      let value = this.trans_map_with_key(_key, lang)
+
+      return value.replace('%d', arg)
+
+    } else {
+
+      return this.trans_map_with_key(key, lang)
+    }
+
+  }
+
+  trans_map_with_key(key: string, lang?: Language) {
     if (lang) {
       return trans_map[lang][key] || this.default_trans_map[key]
     }

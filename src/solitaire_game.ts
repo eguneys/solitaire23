@@ -32,6 +32,12 @@ const isFoundationDragSource = (_: DragSource): _ is FoundationDrag => {
   return (typeof _ === 'object' && (_ as FoundationDrag).foundation !== undefined)
 }
 
+type WasteClick = 'waste'
+
+export type ClickSource = WasteClick | TableuDrag
+const isTableuClickSource = (_: ClickSource): _ is TableuDrag => {
+  return typeof _ === 'object' && typeof _.tableu === 'number'
+}
 
 type RecycleData = {
   on_recycle: () => void
@@ -89,6 +95,7 @@ const reverse_forEach = <A>(a: Array<A>, f: (_: A) => void) => {
 }
 
 type StockData = {
+  on_waste_click: () => void,
   on_hit: () => void,
   on_recycle: () => void,
   on_front_drag: (e: Vec2) => void
@@ -129,6 +136,7 @@ class Stock extends Play {
     cards.forEach(_ => {
       _.bind_drop(undefined)
       _.bind_drag(undefined)
+      _.bind_click(undefined)
     })
     this.waste.add_cards(cards)
     cards.forEach((card, i) => card.flip_front())
@@ -148,9 +156,16 @@ class Stock extends Play {
 
 
   bind_new_front() {
-    this.waste.cards.forEach(_ => _.bind_drag(undefined))
+    this.waste.cards.forEach(_ => {
+      _.bind_drag(undefined)
+      _.bind_click(undefined)
+    })
     this.waste.top_card?.bind_drag((e: Vec2) => {
       this.data.on_front_drag(e)
+    })
+    this.waste.top_card?.bind_click(() => {
+      this.data.on_waste_click()
+      return true
     })
   }
 
@@ -164,7 +179,11 @@ class Stock extends Play {
       _.card = owaste[i]
       _.flip_front()
     })
-    waste_to_stock.forEach(card => card.flip_back())
+    waste_to_stock.forEach(card => {
+      card.flip_back()
+      card.bind_click(undefined)
+      card.bind_drag(undefined)
+    })
     this.stock.add_cards(waste_to_stock)
     this.bind_new_front()
   }
@@ -180,6 +199,7 @@ class Stock extends Play {
     waste.forEach(_ => {
       _.flip_back()
       _.bind_drag(undefined)
+      _.bind_click(undefined)
     })
     this.waste_hidden.add_cards(waste)
     this.waste.add_cards(cards)
@@ -246,7 +266,8 @@ class Stock extends Play {
 
 type FoundationData = {
   on_front_drop: () => void,
-  on_front_drag: (e: Vec2) => void
+  on_front_drag: (e: Vec2) => void,
+  on_front_click: () => void
 }
 class Foundation extends Play {
 
@@ -269,6 +290,7 @@ class Foundation extends Play {
   add_cards(cards: Array<Card>) {
     this.foundation.add_cards(cards)
     this.foundation.top_card?.bind_drag(e => this.data.on_front_drag(e))
+    this.foundation.top_card?.bind_click(() => this.data.on_front_click())
   }
 
   remove_cards(n: number) {
@@ -280,6 +302,9 @@ class Foundation extends Play {
     this.drop_target = this.make(CardDropTarget, Vec2.make(0, 0),  {})
     this.drop_target.bind_drop(() => {
       this.data.on_front_drop()
+    })
+    this.drop_target.bind_click(() => {
+      this.data.on_front_click()
     })
 
     this.foundation = this.make(Stack, Vec2.make(0, 0), { h: 0 })
@@ -300,6 +325,8 @@ export class SolitaireGame extends Play {
 
   dragging?: DragStack
   drag_source?: DragSource
+
+  click_source?: ClickSource
 
 
   back_res!: BackRes
@@ -323,10 +350,15 @@ export class SolitaireGame extends Play {
 
     let self = this
     let c = this.make(Clickable, Vec2.zero, {
-      rect: Rect.make(0, 0, 0, 0),
+      rect: Rect.make(0, 0, 1920, 1080),
       on_up() {
         if (self.dragging && !self.dragging.waiting) {
           self._release_cancel_drag()
+        }
+      },
+      on_click() {
+        if (self.click_source) {
+          self._release_cancel_highlight()
         }
       }
     })
@@ -347,10 +379,16 @@ export class SolitaireGame extends Play {
       stock_y = 320
 
     this.stock = this.make(Stock, Vec2.make(stock_x, stock_y), {
+      on_waste_click() {
+        self._release_cancel_highlight()
+        self.stock.waste.top_card.set_highlight(true)
+        self.click_source = 'waste'
+      },
       on_hit() {
         self.cmd(HitStock)
       },
       on_front_drag(v: Vec2) {
+        self._release_cancel_highlight()
         if (self.dragging) {
           self.dragging.drag(v)
         } else {
@@ -379,7 +417,34 @@ export class SolitaireGame extends Play {
 
     this.tableus = n_seven.map(i => 
                 this.make(Tableu, Vec2.make(tableu_x + tableu_w * i, tableu_y), {
+                  on_front_click(e: number) {
+                    if (!self.click_source) {
+                      self._release_cancel_highlight()
+                      self.tableus[i].fronts.set_highlight(e, true)
+                      self.click_source = { tableu: i, i: e}
+                    } else if (self.click_source === 'waste') {
+                      self.cmd(WasteToTableu, {
+                        to: i
+                      })
+                    } else {
+                      let { tableu, i: _i } = self.click_source
+
+                      if (tableu === i) {
+                        self._release_cancel_highlight()
+                        self.tableus[i].fronts.set_highlight(e, true)
+                        self.click_source = { tableu: i, i: e}
+                        return
+                      }
+
+                      self.cmd(TableuToTableu, {
+                        from: tableu,
+                        to: i,
+                        i: _i
+                      })
+                    }
+                  },
                   on_front_drag(e: number, v: Vec2) {
+                    self._release_cancel_highlight()
                     if (self.dragging) {
                       self.dragging.drag(v)
                     } else {
@@ -438,7 +503,26 @@ export class SolitaireGame extends Play {
 
     this.foundations = n_four.map(i =>
             this.make(Foundation, Vec2.make(foundation_x, foundation_y + foundation_h * i), {
+              on_front_click() {
+                if (self.click_source === 'waste') {
+                  self.cmd(WasteToFoundation, {
+                    to: i
+                  })
+                } else if (self.click_source) {
+                  let { tableu, i: _i } = self.click_source
+
+                  if (_i === 1) {
+                    self.cmd(TableuToFoundation, {
+                      from: tableu,
+                      to: i,
+                      i: 1
+                    })
+                  }
+                }
+
+              },
               on_front_drag(v: Vec2) {
+                self._release_cancel_highlight()
                 if (self.dragging) {
                   self.dragging.drag(v)
                 } else {
@@ -488,8 +572,26 @@ export class SolitaireGame extends Play {
 
   }
 
+  _release_cancel_highlight() {
+    if (!this.click_source) {
+      return
+    } else if (this.click_source === 'waste') {
+      this.stock.waste.top_card.set_highlight(false)
+      this.click_source = undefined
+    } else {
+      let { tableu, i } = this.click_source
+      this.tableus[tableu].fronts.set_highlight(i, false)
+      this.click_source = undefined
+    }
+  }
+
   _release_cancel_drag() {
-    let cards = this.dragging!.lerp_release()
+    if (!this.dragging) {
+      this._release_cancel_highlight()
+      return 
+    }
+
+    let cards = this.dragging.lerp_release()
 
     if (this.drag_source === 'waste') {
       this.stock.add_waste(cards)
@@ -625,6 +727,7 @@ export class SolitaireGame extends Play {
   apply(res: IMove<SolitairePov, Solitaire>) {
     let dispose_drag_cards
     if (res instanceof HitStock) {
+      this._release_cancel_highlight()
       this.stock.hit(res.data.cards)
       this._refresh_recycle()
     } else if (res instanceof Recycle) {
@@ -635,44 +738,79 @@ export class SolitaireGame extends Play {
       let { flip } = res.res
       let { from, to, i } = res.data
 
-      let cards = this.dragging!.lerp_release()
-      this.tableus[to].add_fronts(cards)
+      if (!this.dragging) {
+        if (this.click_source && isTableuClickSource(this.click_source)) {
+          let { tableu, i } = this.click_source
+
+          this._release_cancel_highlight()
+
+          let cards = this.tableus[tableu].remove_fronts(i)
+          this.tableus[to].add_fronts(cards)
+        }
+      } else {
+        let cards = this.dragging!.lerp_release()
+        this.tableus[to].add_fronts(cards)
+        dispose_drag_cards = cards
+      }
 
       if (flip) {
         this.tableus[from].flip_front(flip)
       }
-
-      dispose_drag_cards = cards
     } else if (res instanceof WasteToTableu) {
       let { to } = res.data
-      let cards = this.dragging!.lerp_release()
-      this.tableus[to].add_fronts(cards)
 
-      this.stock.bind_new_front()
 
-      dispose_drag_cards = cards
+      if (!this.dragging) {
+        this._release_cancel_highlight()
+        let cards = this.stock.remove_waste(1)
+        this.tableus[to].add_fronts(cards)
+        this.stock.bind_new_front()
+      } else {
+        let cards = this.dragging.lerp_release()
+        this.tableus[to].add_fronts(cards)
+
+        this.stock.bind_new_front()
+
+        dispose_drag_cards = cards
+      }
     } else if (res instanceof TableuToFoundation) {
       let { flip } = res.res
       let { from, to } = res.data
 
-      let cards = this.dragging!.lerp_release()
-      this.foundations[to].add_cards(cards)
+      if (!this.dragging) {
+
+        this._release_cancel_highlight()
+
+        let cards = this.tableus[from].remove_fronts(1)
+        this.foundations[to].add_cards(cards)
+      } else {
+        let cards = this.dragging!.lerp_release()
+        this.foundations[to].add_cards(cards)
+  
+        dispose_drag_cards = cards
+      }
 
       if (flip) {
         this.tableus[from].flip_front(flip)
       }
 
-      dispose_drag_cards = cards
 
     } else if (res instanceof WasteToFoundation) {
       let { to } = res.data
 
-      let cards = this.dragging!.lerp_release()
-      this.foundations[to].add_cards(cards)
+      if (!this.dragging) {
+        this._release_cancel_highlight()
+        let cards = this.stock.remove_waste(1)
+        this.foundations[to].add_cards(cards)
+      } else {
+  
+        let cards = this.dragging!.lerp_release()
+        this.foundations[to].add_cards(cards)
+        dispose_drag_cards = cards
+      }
 
       this.stock.bind_new_front()
 
-      dispose_drag_cards = cards
 
     } else if (res instanceof FoundationToTableu) {
       let { from, to } = res.data

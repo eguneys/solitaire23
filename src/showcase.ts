@@ -167,7 +167,6 @@ export class Card extends Play {
   _will_lerp_t?: number
   _will_lerp_position?: Vec2
   lerp_position(v?: Vec2, t?: number) {
-
     if (this._tx) {
       this.cancel(this._tx)
       this._tx = undefined
@@ -207,11 +206,16 @@ export class Card extends Play {
     this._on_hover = e
   }
 
+  _on_click?: DropHook
+  bind_click(e?: DropHook) {
+    this._on_click = e
+  }
 
   facing!: number
 
   anim!: Anim
   shadow!: Anim
+  highlight!: Anim
 
   _will_hover!: boolean
   _will_hover_end!: boolean
@@ -259,6 +263,10 @@ export class Card extends Play {
     }, duration, 0, () => { this._ty = undefined })
   }
 
+  set_highlight(highlight: boolean) {
+    this.highlight.visible = highlight
+  }
+
   set_dragging() {
     this._lerp_drag_shadow = 0
     this._dragging = true
@@ -276,7 +284,6 @@ export class Card extends Play {
 
   _init() {
     
-
     this.shadow = this._make(Anim, Vec2.make(0, 0), { name: 'card' })
     this.shadow.origin = Vec2.make(88, 120)
     this.shadow.play_now('shadow')
@@ -285,6 +292,13 @@ export class Card extends Play {
     this.anim.origin = Vec2.make(88, 120)
     this.facing = -1
     this.anim.play_now('back_idle')
+
+    this.highlight = this.make(Anim, Vec2.make(0, 0), { name: 'card' })
+    this.highlight.origin = Vec2.make(88, 120)
+    this.highlight.play_now('highlight')
+    this.highlight.visible = false
+
+
 
     this.decoration = this.make(SuitRankDecoration, Vec2.make(-80, -120), {})
     this.decoration.visible = false
@@ -306,6 +320,11 @@ export class Card extends Play {
     let self = this
     this.make(Clickable, Vec2.make(16, 16).sub(this.anim.origin), {
       rect: Rect.make(0, 0, 170, 210),
+      on_click() {
+        if (self._on_click) {
+          return self._on_click()
+        }
+      },
       on_hover() {
         if (self._on_hover) {
           self._on_hover[0]()
@@ -384,8 +403,11 @@ export class Card extends Play {
     }
 
 
-    this.anim.position.y = lerp(this.anim.position.y, this.lerp_hover_y, 0.2)
-    this.decoration.position.y = lerp(this.decoration.position.y, this.lerp_hover_y - 120, 0.16)
+    if (!this.easing) {
+      this.anim.position.y = lerp(this.anim.position.y, this.lerp_hover_y, 0.2)
+      this.decoration.position.y = lerp(this.decoration.position.y, this.lerp_hover_y - 120, 0.16)
+      this.highlight.position.y = lerp(this.highlight.position.y, this.lerp_hover_y, 0.16)
+    }
 
     if (this._will_hover) {
       this._will_hover = false
@@ -469,6 +491,11 @@ export class Card extends Play {
 
 export class CardDropTarget extends Play {
 
+  _on_click?: DropHook
+  bind_click(e?: DropHook) {
+    this._on_click = e
+  }
+
 
   _on_drop?: DropHook
   bind_drop(e?: DropHook) {
@@ -501,6 +528,11 @@ export class CardDropTarget extends Play {
       on_drop() {
         if (self._on_drop) {
           self._on_drop()
+        }
+      },
+      on_click() {
+        if (self._on_click) {
+          self._on_click()
         }
       }
     })
@@ -600,6 +632,11 @@ export class Stack extends Play {
 
   get top_position() {
     return this.position.add(Vec2.make(0, this.cards.length * this.h))
+  }
+
+  set_highlight(n: number, highlight: boolean) {
+    let his = this.cards.slice(this.cards.length - n, this.cards.length)
+    his.forEach(_ => _.set_highlight(highlight))
   }
 
   add_cards(cards: Array<Card>) {
@@ -702,6 +739,7 @@ export class DragStack extends Play {
 type TableuData = {
   on_front_drag: (i: number, v: Vec2) => void,
   on_front_drop: () => void
+  on_front_click: (i: number) => void
 }
 
 export class Tableu extends Play {
@@ -747,6 +785,10 @@ export class Tableu extends Play {
       _.bind_drag((e: Vec2) => {
         self.data.on_front_drag(l - i, e)
       })
+      _.bind_click(() => {
+        self.data.on_front_click(l - i)
+        return true
+      })
     })
     this.fronts.top_card?.bind_drop(() => {
       self.data.on_front_drop()
@@ -765,6 +807,10 @@ export class Tableu extends Play {
       _.bind_drop(undefined)
       _.bind_drag((e: Vec2) => {
         self.data.on_front_drag(l - i, e)
+      })
+      _.bind_click(() => {
+        self.data.on_front_click(l - i)
+        return true
       })
     })
     this.fronts.top_card?.bind_drop(() => {
@@ -789,6 +835,10 @@ export class Tableu extends Play {
     this.fronts.top_card.bind_drop(() => {
       self.data.on_front_drop()
 
+    })
+    this.fronts.top_card.bind_click(() => {
+      self.data.on_front_click(1)
+      return true
     })
   }
 
@@ -817,6 +867,9 @@ export class Tableu extends Play {
     this.drop_target = this.make(CardDropTarget, Vec2.make(0, 0), {})
     this.drop_target.bind_drop(() => {
       this.data.on_front_drop()
+    })
+    this.drop_target.bind_click(() => {
+      this.data.on_front_click(1)
     })
 
     this.backs = this.make(Stack, Vec2.make(0, 0), { h: 33 })
