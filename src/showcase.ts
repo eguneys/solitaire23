@@ -533,7 +533,9 @@ export class CardDropTarget extends Play {
       on_click() {
         if (self._on_click) {
           self._on_click()
+          return true
         }
+        return false
       }
     })
   }
@@ -870,6 +872,7 @@ export class Tableu extends Play {
     })
     this.drop_target.bind_click(() => {
       this.data.on_front_click(1)
+      return true
     })
 
     this.backs = this.make(Stack, Vec2.make(0, 0), { h: 33 })

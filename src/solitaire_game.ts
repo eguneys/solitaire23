@@ -220,6 +220,10 @@ class Stock extends Play {
 
     let cards = this.waste_hidden.remove_cards(this.waste_hidden.length)
 
+    cards.forEach(card => {
+      card.bind_drag(undefined)
+      card.bind_click(undefined)
+    })
     cards.forEach(card => card.flip_back())
     cards.forEach(card => card.send_front())
 
@@ -307,6 +311,7 @@ class Foundation extends Play {
     })
     this.drop_target.bind_click(() => {
       this.data.on_front_click()
+      return true
     })
 
     this.foundation = this.make(Stack, Vec2.make(0, 0), { h: 0 })
@@ -476,10 +481,11 @@ export class SolitaireGame extends Play {
                     }
                   },
                   on_front_drag(e: number, v: Vec2) {
-                    self._release_cancel_highlight()
                     if (self.dragging) {
                       self.dragging.drag(v)
                     } else {
+
+                      self._release_cancel_highlight()
                       if (self.pov.can_drag_tableu({ from: i, i: e })) {
                         let cards = self.tableus[i].remove_fronts(e)
 
@@ -770,6 +776,7 @@ export class SolitaireGame extends Play {
       let { flip } = res.res
       let { from, to, i } = res.data
 
+      let bring_to_front_cards
       if (!this.dragging) {
         if (this.click_source && isTableuClickSource(this.click_source)) {
           let { tableu, i } = this.click_source
@@ -778,6 +785,8 @@ export class SolitaireGame extends Play {
 
           let cards = this.tableus[tableu].remove_fronts(i)
           this.tableus[to].add_fronts(cards)
+
+          bring_to_front_cards = cards
         }
       } else {
         let cards = this.dragging!.lerp_release()
@@ -787,6 +796,11 @@ export class SolitaireGame extends Play {
 
       if (flip) {
         this.tableus[from].flip_front(flip)
+
+        if (bring_to_front_cards) {
+          bring_to_front_cards.forEach(_ => _.send_front())
+        }
+
       }
     } else if (res instanceof WasteToTableu) {
       let { to } = res.data
@@ -864,7 +878,11 @@ export class SolitaireGame extends Play {
     }
 
     if (res instanceof TableuToFoundation || res instanceof WasteToFoundation) {
+      if (this.trigger_auto === -1) {
+        Sound.play('auto_flip')
+      }
       if (this.trigger_auto === -3) {
+        Sound.play('auto_flip')
         this.trigger_auto = -1
       }
     }
@@ -908,7 +926,7 @@ export class SolitaireGame extends Play {
 
   _update() {
     if (this.trigger_auto === -1) {
-      this.trigger_auto = ticks.half + ticks.thirds
+      this.trigger_auto = ticks.thirds + ticks.thirds
     } else if (this.trigger_auto > 0) {
       this.trigger_auto = appr(this.trigger_auto, 0, Time.delta)
     } else if (this.trigger_auto === 0) {
