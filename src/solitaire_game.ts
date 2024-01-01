@@ -416,6 +416,9 @@ export class SolitaireGame extends Play {
         if (self.dragging) {
           self.dragging.drag(v)
         } else {
+          if (self.trigger_auto !== -2) {
+            return
+          }
           if (self.pov.can_drag_waste) {
             let cards = self.stock.remove_waste(1)
 
@@ -486,6 +489,9 @@ export class SolitaireGame extends Play {
                     } else {
 
                       self._release_cancel_highlight()
+                      if (self.trigger_auto !== -2) {
+                        return
+                      }
                       if (self.pov.can_drag_tableu({ from: i, i: e })) {
                         let cards = self.tableus[i].remove_fronts(e)
 
@@ -564,6 +570,9 @@ export class SolitaireGame extends Play {
                 if (self.dragging) {
                   self.dragging.drag(v)
                 } else {
+                  if (self.trigger_auto !== -2) {
+                    return
+                  }
                   if (self.pov.can_drag_foundation({ from: i })) {
                     let cards = self.foundations[i].remove_cards(1)
 
@@ -926,7 +935,7 @@ export class SolitaireGame extends Play {
 
   _update() {
     if (this.trigger_auto === -1) {
-      this.trigger_auto = ticks.thirds + ticks.thirds
+      this.trigger_auto = ticks.thirds
     } else if (this.trigger_auto > 0) {
       this.trigger_auto = appr(this.trigger_auto, 0, Time.delta)
     } else if (this.trigger_auto === 0) {

@@ -1342,7 +1342,6 @@ class ScrollableContent extends Play {
     this.thumb.draw(batch)
     batch.pop_scissor()
 
-
     batch.push_scissor(Rect.make(position.x, position.y, this.width, this.height))
     this.g_scissor = Rect.make(position.x, position.y, this.width, this.height)
     this.data.content.draw(batch)
@@ -1849,8 +1848,17 @@ class SolitaireSettings extends Play {
 
   _init() {
 
+
+    this.make(TransText, Vec2.make(280, 20), {
+      key: 'solitaire_settings',
+      width: 820,
+      height: 200
+    })
+
+
+
     let h = 220
-    let turning_cards_setting = this.make(DropdownSetting, Vec2.make(40, 0), {
+    let turning_cards_setting = this.make(DropdownSetting, Vec2.make(40, h), {
       name: 'turning_cards',
       items: ['three_cards', 'one_card'],
       selected_index: cards_settings.indexOf(SolitaireStore.cards),
@@ -1859,7 +1867,7 @@ class SolitaireSettings extends Play {
       }
     })
 
-    let turning_limit_setting = this.make(DropdownSetting, Vec2.make(40, h * 1), {
+    let turning_limit_setting = this.make(DropdownSetting, Vec2.make(40, h * 2), {
       name: 'turning_limit',
       items: ['no_limit', 'three_passes', 'one_pass'],
       selected_index: limit_settings.indexOf(SolitaireStore.limit),
@@ -1904,8 +1912,16 @@ class GeneralSettings extends Play {
 
   _init() {
 
+
+
+    this.make(TransText, Vec2.make(280, 20), {
+      key: 'general_settings',
+      width: 820,
+      height: 200
+    })
+
     let h = 220
-    let language_setting = this.make(DropdownSetting, Vec2.make(40, 0), {
+    let language_setting = this.make(DropdownSetting, Vec2.make(40, h * 1), {
       no_trans: true,
       name: 'language',
       items: languages.map(_ => Trans.lang_key(_)),
@@ -1929,7 +1945,7 @@ class GeneralSettings extends Play {
 
 
     let sound_settings = ['on', 'off']
-    let sound_setting = this.make(DropdownSetting, Vec2.make(40, h * 1), {
+    let sound_setting = this.make(DropdownSetting, Vec2.make(40, h * 2), {
       name: 'sounds',
       items: ['on', 'off'],
       selected_index: GeneralStore.sound ? 0: 1,
@@ -1940,7 +1956,7 @@ class GeneralSettings extends Play {
 
 
     let music_settings = ['on', 'off']
-    let music_setting = this.make(DropdownSetting, Vec2.make(40, h * 2), {
+    let music_setting = this.make(DropdownSetting, Vec2.make(40, h * 3), {
       name: 'music',
       items: ['on', 'off'],
       selected_index: GeneralStore.music ? 0: 1,
@@ -2025,6 +2041,264 @@ class DropdownSetting extends Play {
     })
   }
 }
+
+class OverallStatistics extends Play {
+
+  height!: number
+
+  _init() {
+
+    this.make(TransText, Vec2.make(700, 0), {
+      key: 'overall_statistics',
+      width: 820,
+      height: 200,
+      center: true
+    })
+
+    let h = 100
+
+    this.make(TransText, Vec2.make(700, 200), {
+      key: 'total_games_played%100%',
+      width: 820,
+      height: 200,
+      center: true
+    })
+
+    this.make(TransText, Vec2.make(700, 200 + h * 1.2), {
+      key: 'games_won%20%',
+      width: 820,
+      height: 200,
+      center: true
+    })
+
+    this.make(TransText, Vec2.make(700, 200 + h * 3), {
+      key: 'top5_highscores',
+      width: 820,
+      height: 200,
+      center: true
+    })
+
+    let top_highscores = [10, 20, 30]
+
+    top_highscores.forEach((top, i) => {
+      this.make(TransText, Vec2.make(200, 200 + h * 4 + h * i * 1.5 + 80), {
+        key: `${i + 1}.`,
+        width: 80,
+        height: 100,
+        no_trans: true
+      })
+      this.make(TransText, Vec2.make(700, 200 + h * 4 + h * i * 1.5 + 80), {
+        key: `${top}`,
+        width: 80,
+        height: 100,
+        no_trans: true,
+        center: true
+      })
+
+      this.make(RectView, Vec2.make(200, 100 + 200 + h * 4 + h * i * 1.5 + 80), {
+        w: 1000,
+        h: 20,
+        color: Color.white
+      })
+    
+    })
+
+
+    this.height = 2000
+  }
+}
+
+
+class SolitaireStatistics extends Play {
+
+  _init() {
+
+    this.make(TransText, Vec2.make(700, 0), {
+      key: 'solitaire_statistics',
+      width: 820,
+      height: 200,
+      center: true
+    })
+
+    let h = 100
+
+    this.make(TransText, Vec2.make(700, 200), {
+      key: 'total_games_played%100%',
+      width: 820,
+      height: 200,
+      center: true
+    })
+
+    this.make(TransText, Vec2.make(700, 200 + h * 1.2), {
+      key: 'games_won%20%',
+      width: 820,
+      height: 200,
+      center: true
+    })
+
+    this.make(TransText, Vec2.make(700, 200 + h * 3), {
+      key: 'top5_highscores',
+      width: 820,
+      height: 200,
+      center: true
+    })
+
+    let top_highscores = [10, 20, 30]
+
+    top_highscores.forEach((top, i) => {
+      this.make(TransText, Vec2.make(200, 200 + h * 4 + h * i * 1.5 + 80), {
+        key: `${i + 1}.`,
+        width: 80,
+        height: 100,
+        no_trans: true
+      })
+      this.make(TransText, Vec2.make(700, 200 + h * 4 + h * i * 1.5 + 80), {
+        key: `${top}`,
+        width: 80,
+        height: 100,
+        no_trans: true,
+        center: true
+      })
+
+      this.make(RectView, Vec2.make(200, 100 + 200 + h * 4 + h * i * 1.5 + 80), {
+        w: 1000,
+        h: 20,
+        color: Color.white
+      })
+    
+    })
+
+
+    this.height = 2000
+  }
+}
+
+
+
+type Statistics2Data = {
+  selected_index?: number,
+  on_back?: PlayType<Play>
+}
+
+class Statistics2 extends Play {
+
+  get data() {
+    return this._data as Statistics2Data
+  }
+
+  _init() {
+
+    let selected_index = this.data.selected_index ?? 0
+
+    this.make(RectView, Vec2.zero, { w: 1920, h: 1080, color: Color.hex(0xb4beb4)})
+
+
+    let self = this
+    this.make(Navigation2, Vec2.zero, {
+      key: 'statistics',
+      on_back() {
+        scene_transition.next(self.data.on_back ?? MainMenu2)
+      }
+    })
+
+    this.make(Nine, Vec2.make(220, 150), {
+      name: 'panel_bg_nine_slice',
+      w: 1480,
+      h: 910
+    })
+
+    let w = 1000 / 4
+    let tw = w * 1.6
+    let tabs = [
+      this._make(Tab, Vec2.make(2, 2), {
+        text: 'overall',
+        w: tw
+      }),
+      this._make(Tab, Vec2.make(2 + w + 4, 2), {
+        no_trans: true,
+        text: 'solitaire',
+        w: tw
+      }),
+      this._make(Tab, Vec2.make(2 + (w + 4) * 2, 2), {
+        no_trans: true,
+        text: 'fourtimes',
+        w: tw
+      }),
+      this._make(Tab, Vec2.make(2 + (w + 4) * 3, 2), {
+        no_trans: true,
+        text: 'octopus',
+        w: tw
+      })
+    ]
+
+    let panel: TabPanel
+
+    this.make(Tabs, Vec2.make(600, 8), {
+      tabs,
+      selected_index,
+      on_selected_index(i: number) {
+        panel.selected_index = i
+      }
+    })
+
+
+    let content = this._make(OverallStatistics, Vec2.make(0, 0), {})
+
+
+    let general = this._make(ScrollableContent, Vec2.make(0, 0), {
+      w: 1450,
+      h: 850,
+      content
+    })
+
+
+    content = this._make(SolitaireStatistics, Vec2.make(0, 0), {})
+
+
+    let solitaire = this._make(ScrollableContent, Vec2.make(0, 0), {
+      w: 1450,
+      h: 850,
+      content
+    })
+
+
+    content = this._make(OverallStatistics, Vec2.make(0, 0), {})
+
+
+    let fourtimes = this._make(ScrollableContent, Vec2.make(0, 0), {
+      w: 1450,
+      h: 850,
+      content
+    })
+
+
+    content = this._make(OverallStatistics, Vec2.make(0, 0), {})
+
+
+    let octopus = this._make(ScrollableContent, Vec2.make(0, 0), {
+      w: 1450,
+      h: 850,
+      content
+    })
+
+
+
+    let panels = [
+      general,
+      solitaire,
+      fourtimes,
+      octopus
+    ]
+
+    panel = this.make(TabPanel, Vec2.make(220, 180), {
+      w: 1050,
+      h: 850,
+      panels,
+      selected_index
+    })
+  }
+}
+
 
 type Settings2Data = {
   selected_index?: number,
@@ -2255,6 +2529,7 @@ export class MainMenu2 extends Play {
     this.make(MainSideButton, Vec2.make(1300, side_y + side_h), {
       text: 'statistics',
       on_click() {
+        scene_transition.next(Statistics2)
       }
     })
 
@@ -2309,11 +2584,11 @@ class SceneTransition extends Play {
 
     //this.current = this._make(CardShowcase, Vec2.zero, {})
     // this.current = this._make(MainMenu, Vec2.zero, {})
-    //this.current = this._make(Statistics, Vec2.zero, {})
+    this.current = this._make(Statistics2, Vec2.zero, {})
     // this.current = this._make(MainMenu2, Vec2.zero, {})
     //this.current = this._make(HowtoPlay2, Vec2.zero, {})
     //this.current = this._make(Settings2, Vec2.zero, {})
-    this.current = this._make(SolitairePlay, Vec2.zero, {})
+    //this.current = this._make(SolitairePlay, Vec2.zero, {})
     //this.current = this._make(About2, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))

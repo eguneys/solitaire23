@@ -32,3 +32,14 @@ onepass=1 pass
 
 you_finished_with_score=You Finished With %d Points
 congratz=Congratulations
+
+overall=overall
+
+total_games_played=Total %d Games Played
+games_won=%d Games Won
+top5_highscores=Top 5 Highscores
+
+general_settings=General Settings
+solitaire_settings=Solitaire Settings
+overall_statistics=Overall Statistics
+solitaire_statistics=Solitaire Statistics
