@@ -27,7 +27,8 @@ import Sound from './sound'
 import Trans, { languages } from './trans'
 
 import { limit_settings, cards_settings, SolitaireStore, GeneralStore } from './store'
-
+import { SolitaireResultsStore } from './store'
+import { GameResults, OverallResults } from './statistics'
 
 
 type RectData = {
@@ -2055,17 +2056,22 @@ class OverallStatistics extends Play {
       center: true
     })
 
+    let overall_results = new OverallResults(
+      SolitaireResultsStore.results, 
+      new GameResults([]), 
+      new GameResults([]))
+
     let h = 100
 
     this.make(TransText, Vec2.make(700, 200), {
-      key: 'total_games_played%100%',
+      key: `total_games_played%${overall_results.total_played}%`,
       width: 820,
       height: 200,
       center: true
     })
 
     this.make(TransText, Vec2.make(700, 200 + h * 1.2), {
-      key: 'games_won%20%',
+      key: `games_won%${overall_results.total_wins}%`,
       width: 820,
       height: 200,
       center: true
@@ -2078,7 +2084,7 @@ class OverallStatistics extends Play {
       center: true
     })
 
-    let top_highscores = [10, 20, 30]
+    let top_highscores = overall_results.top_5_highscores
 
     top_highscores.forEach((top, i) => {
       this.make(TransText, Vec2.make(200, 200 + h * 4 + h * i * 1.5 + 80), {
@@ -2088,7 +2094,7 @@ class OverallStatistics extends Play {
         no_trans: true
       })
       this.make(TransText, Vec2.make(700, 200 + h * 4 + h * i * 1.5 + 80), {
-        key: `${top}`,
+        key: `${top.multiplied_score}`,
         width: 80,
         height: 100,
         no_trans: true,
@@ -2111,6 +2117,8 @@ class OverallStatistics extends Play {
 
 class SolitaireStatistics extends Play {
 
+  height!: number
+
   _init() {
 
     this.make(TransText, Vec2.make(700, 0), {
@@ -2120,17 +2128,19 @@ class SolitaireStatistics extends Play {
       center: true
     })
 
+    let results = SolitaireResultsStore.results
+
     let h = 100
 
     this.make(TransText, Vec2.make(700, 200), {
-      key: 'total_games_played%100%',
+      key: `total_games_played%${results.total_played}%`,
       width: 820,
       height: 200,
       center: true
     })
 
     this.make(TransText, Vec2.make(700, 200 + h * 1.2), {
-      key: 'games_won%20%',
+      key: `games_won%${results.total_wins}%`,
       width: 820,
       height: 200,
       center: true
@@ -2143,7 +2153,7 @@ class SolitaireStatistics extends Play {
       center: true
     })
 
-    let top_highscores = [10, 20, 30]
+    let top_highscores = results.top_5_highscores
 
     top_highscores.forEach((top, i) => {
       this.make(TransText, Vec2.make(200, 200 + h * 4 + h * i * 1.5 + 80), {
@@ -2153,7 +2163,7 @@ class SolitaireStatistics extends Play {
         no_trans: true
       })
       this.make(TransText, Vec2.make(700, 200 + h * 4 + h * i * 1.5 + 80), {
-        key: `${top}`,
+        key: `${top.multiplied_score}`,
         width: 80,
         height: 100,
         no_trans: true,
@@ -2441,8 +2451,8 @@ export class MainMenu2 extends Play {
 
     _ = this.make(Anim, Vec2.make(200, 150), { name: 'main_bg' })
 
-    let lisotaire = this.make(Text, Vec2.make(16, 32), { text: 'lisotaire', color: Color.hex(0x202431)})
-    this.make(Text, Vec2.make(16 + lisotaire.width, 32), { text: '.com', color: Color.hex(0xb4beb4)})
+    let sofo = this.make(Text, Vec2.make(16, 32), { text: 'sofo', color: Color.hex(0x202431)})
+    this.make(Text, Vec2.make(16 + sofo.width, 32), { text: '.demo', color: Color.hex(0xb4beb4)})
 
 
     let card_x = 200
@@ -2584,8 +2594,8 @@ class SceneTransition extends Play {
 
     //this.current = this._make(CardShowcase, Vec2.zero, {})
     // this.current = this._make(MainMenu, Vec2.zero, {})
-    this.current = this._make(Statistics2, Vec2.zero, {})
-    // this.current = this._make(MainMenu2, Vec2.zero, {})
+    //this.current = this._make(Statistics2, Vec2.zero, {})
+    this.current = this._make(MainMenu2, Vec2.zero, {})
     //this.current = this._make(HowtoPlay2, Vec2.zero, {})
     //this.current = this._make(Settings2, Vec2.zero, {})
     //this.current = this._make(SolitairePlay, Vec2.zero, {})

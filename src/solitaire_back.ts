@@ -1,7 +1,8 @@
 import { SolitaireGame } from './solitaire_game'
 import { Settings, Cards, Solitaire, SolitairePov, Game as OSolitaireGame, GamePov, IMoveType, TableuToTableu, IMove, TableuToFoundation, WasteToFoundation } from 'lsolitaire'
-import { SolitaireStore } from './store'
+import { SolitaireResultsStore, SolitaireStore } from './store'
 import { arr_random } from './util'
+import { SolitaireGameResult } from './statistics'
 
 export type BackRes = {
   game_pov: GamePov<SolitairePov, Solitaire>,
@@ -14,7 +15,7 @@ export type BackRes = {
 export const make_solitaire_back = async (game: SolitaireGame, 
   on_score: (_: number) => void,
   on_new_game: (_: Settings) => void,
-  on_game_over: (_: number) => void): Promise<BackRes> => {
+  on_game_over: (_: Settings, score: number) => void): Promise<BackRes> => {
 
   let back = solitaire_back
   let game_pov = await back.get_pov()
@@ -39,7 +40,7 @@ export const make_solitaire_back = async (game: SolitaireGame,
 
             back.get_pov().then(_ => {
               if (_.game.is_finished) {
-                on_game_over(_.score)
+                on_game_over(_.game.settings, _.score)
               }
             })
           }
@@ -67,14 +68,28 @@ export const make_solitaire_back = async (game: SolitaireGame,
       }
     },
     async new_game() {
+
+
+      back.get_pov().then(_ => {
+        let score = _.score
+
+        if (score > 0) {
+          if (!_.game.is_finished) {
+            SolitaireResultsStore.add_result(SolitaireGameResult.from_loss(_.game.settings, score))
+          }
+        }
+      })
+      
+
       solitaire_back = new SolitaireBack()
       back = solitaire_back
       game_pov = await solitaire_back.get_pov()
-      
+
       game.new_game()
 
       back.get_pov().then(_ => on_score(_.score))
       back.get_pov().then(_ => on_new_game(_.game.settings))
+
     }
   }
 

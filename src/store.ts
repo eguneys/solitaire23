@@ -2,6 +2,7 @@ import { Language } from './trans'
 import { TurningLimit, TurningCards, Settings, Solitaire, Cards } from 'lsolitaire'
 
 import { StoredJsonProp, storedJsonProp } from './storage'
+import { GameResults, SolitaireGameResult } from './statistics'
 
 export let limit_settings: Array<TurningLimit> = ['nolimit', 'threepass', 'onepass']
 export let cards_settings: Array<TurningCards> = ['threecards', 'onecard']
@@ -104,3 +105,43 @@ let general = new GeneralStore()
 export { solitaire as SolitaireStore }
 export { general as GeneralStore }
 
+
+
+
+class SolitaireResultsStore {
+
+  _results!: StoredJsonProp<string>
+
+  set results(_: GameResults<SolitaireGameResult>) {
+    this._results(_.fen)
+  }
+
+  get results() {
+    return GameResults.from_fen(this._results(), SolitaireGameResult.from_fen)
+  }
+
+  add_result(_: SolitaireGameResult) {
+    let results = this.results
+
+    results.push(_)
+
+
+    this.results = results
+  }
+
+  clear_results() {
+    let results = this.results
+
+    results.clear()
+
+
+    this.results = results
+  }
+
+  constructor() {
+    this._results = storedJsonProp('solitaire_results', () => new GameResults<SolitaireGameResult>([]).fen)
+  }
+}
+
+let solitaire_results = new SolitaireResultsStore()
+export { solitaire_results as SolitaireResultsStore }

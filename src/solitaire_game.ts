@@ -14,7 +14,7 @@ import { HitStock, Recycle,
   TableuToFoundation, 
   FoundationToTableu,
 } from 'lsolitaire'
-import { SolitaireStore } from './store'
+import { SolitaireStore, SolitaireResultsStore } from './store'
 import { ticks } from './shared'
 import { appr } from './lerp'
 

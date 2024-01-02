@@ -28,6 +28,8 @@ import { SolitaireGame } from './solitaire_game'
 import { make_solitaire_back } from './solitaire_back'
 import { card_sort_key, Settings } from 'lsolitaire'
 import { Nine } from './nine'
+import { SolitaireResultsStore } from './store'
+import { SolitaireGameResult } from './statistics'
 
 let rnd_screen_poss = [...Array(50).keys()].map(() => v_random().mul(v_screen.scale(0.8)))
 
@@ -691,9 +693,10 @@ export class SolitairePlay extends Play {
       }
     }
 
-    const on_game_over = (score: number) => {
+    const on_game_over = (_: Settings, score: number) => {
       this.game_over_confetti_pop()
       game_over_dialog = this.make(GameOverDialog, Vec2.make(0, 0), { score })
+      SolitaireResultsStore.add_result(SolitaireGameResult.from_win(_, score))
     }
 
     make_solitaire_back(game, on_score, on_new_game, on_game_over).then(back_res => {
