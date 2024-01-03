@@ -691,6 +691,7 @@ export class SolitairePlay extends Play {
         game_over_dialog.dispose()
         game_over_dialog = undefined
       }
+      Sound.play('new_game')
     }
 
     const on_game_over = (_: Settings, score: number) => {

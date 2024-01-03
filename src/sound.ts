@@ -8,6 +8,7 @@ function load_audio(path: string): HTMLMediaElement {
 
 let names = [
   'Win',
+  'new_game',
   'auto_flip',
   'drag1', 'drag2', 'drag3',
   'cancel', 'drop', 'hit', 'recycle', 'undo2'
