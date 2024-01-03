@@ -120,6 +120,8 @@ export class Card extends Play {
     this.lerp_position()
     this.unset_dragging()
 
+    this.set_highlight(false)
+    this.bind_click(undefined)
     this.bind_drag(undefined)
     this.bind_drop(undefined)
     this.bind_hover(undefined)

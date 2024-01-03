@@ -684,6 +684,9 @@ export class SolitaireGame extends Play {
       foundation.release_all().forEach(_ => this.cards.release(_))
     })
 
+    this.drag_source = undefined
+    this.click_source = undefined
+
     this._refresh_recycle()
     //this.recycle_view.visible = pov.can_recycle
 
