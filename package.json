@@ -8,7 +8,8 @@
     "dev": "vite --port=3000",
     "build": "vite build",
     "lint": "tsc --noEmit --watch",
-    "content": "node content.js"
+    "content": "node content.js",
+    "preview": "vite preview"
   },
   "dependencies": {
     "blah": "link:..\\blah",
@@ -20,6 +21,7 @@
     "aset": "link:..\\aset",
     "chokidar": "^3.5.3",
     "concurrently": "^7.6.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vite-plugin-pwa": "^0.17.4"
   }
 }
