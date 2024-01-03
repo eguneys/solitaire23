@@ -36,6 +36,9 @@ export class Mouse {
 
     const dragStart = (e: Event) => { 
       e.preventDefault()
+      if ((e as TouchEvent).touches?.length > 1) {
+        return
+      }
       _onDragStart?.(ep(e as MouchEvent), (e as MouseEvent).buttons === 2 || (e as MouseEvent).button === 2) }
     const dragMove = (e: Event) => { _onDragMove?.(ep(e as MouchEvent)) }
     const dragEnd = (e: Event) => { _onDragEnd?.(ep(e as MouchEvent)) }
