@@ -64,6 +64,30 @@ export class RectView extends Play {
   }
 }
 
+
+class ArrowUpFire extends Play {
+
+  v!: number
+
+
+  _init() {
+  
+    let _ = this.make(Anim, Vec2.make(0, 0), {
+      name: 'arrow_up_fire'
+    })
+    _.play_o('idle', { loop: true })
+
+    this.v = 200 + Math.random() * 100
+
+  }
+
+
+  _update() {
+    this.position.x += this.v * 0.8 * Time.delta
+    this.position.y -= this.v * Time.delta
+  }
+}
+
 export class Background extends Play {
   _init() {
 
@@ -72,6 +96,19 @@ export class Background extends Play {
       h: Game.height,
       color: Color.hex(0x222222)
     })
+
+
+
+  }
+
+  _update() {
+
+    if (Time.on_interval(ticks.seconds * 3)) {
+      for (let i = 0; i < Math.random() * 5; i++) {
+        let x = 400 + Math.random() * 1000
+        //this.make(ArrowUpFire, Vec2.make(-x, x * 3), {})
+      }
+    }
   }
 }
 

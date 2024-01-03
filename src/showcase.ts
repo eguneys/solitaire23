@@ -75,8 +75,8 @@ export class SuitRankDecoration extends Play {
     .map(() =>
          (v_next = v_next
           .sub(v_random()
-               .mul(Vec2.make(24, 30))
-               .add(Vec2.make(0, 40)))))
+               .mul(Vec2.make(24, 20))
+               .add(Vec2.make(0, 30)))))
     .map(v => {
       v.x += 120
       let _ = this.make(Anim, v, { name: 'suit'})
@@ -88,7 +88,7 @@ export class SuitRankDecoration extends Play {
     })
     this.decsuit.push(...more_suits)
 
-    this.rank = this.make(Anim, Vec2.make(140, 32), { name: 'rank' })
+    this.rank = this.make(Anim, Vec2.make(140, 32), { name: 'rank_2' })
     this.rank.origin = Vec2.make(32, 32)
     this.rank.play_now('a')
     this.rank.scale = Vec2.make(0.6, 0.6)
