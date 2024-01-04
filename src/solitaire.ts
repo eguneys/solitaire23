@@ -30,6 +30,7 @@ import { card_sort_key, Settings } from 'lsolitaire'
 import { Nine } from './nine'
 import { SolitaireResultsStore } from './store'
 import { SolitaireGameResult } from './statistics'
+import { Poems } from './poems'
 
 let rnd_screen_poss = [...Array(50).keys()].map(() => v_random().mul(v_screen.scale(0.8)))
 
@@ -655,7 +656,7 @@ export class SolitairePlay extends Play {
 
     let sidebar: SideBar
 
-    this.make(Background, Vec2.zero, undefined)
+    let background = this.make(Background, Vec2.zero, undefined)
 
     this.over_confetties.push(
       this.make(GameOverConfetti, Vec2.make(0, 0), {})
@@ -692,6 +693,7 @@ export class SolitairePlay extends Play {
         game_over_dialog = undefined
       }
       Sound.play('new_game')
+      background.change_poem()
     }
 
     const on_game_over = (_: Settings, score: number) => {

@@ -29,6 +29,7 @@ import Trans, { languages } from './trans'
 import { limit_settings, cards_settings, SolitaireStore, GeneralStore } from './store'
 import { SolitaireResultsStore } from './store'
 import { GameResults, OverallResults } from './statistics'
+import { Poems } from './poems'
 
 
 type RectData = {
@@ -89,6 +90,16 @@ class ArrowUpFire extends Play {
 }
 
 export class Background extends Play {
+
+  poem_text!: TransText
+
+
+  change_poem() {
+    this._will_change_poem = true
+  }
+
+  _will_change_poem: boolean = false
+
   _init() {
 
     this.make(RectView, Vec2.make(0, 0), {
@@ -99,9 +110,34 @@ export class Background extends Play {
 
 
 
+    let poem = Poems.one()
+
+    this.poem_text = this.make(TransText, Vec2.make(1920 / 2, 1080), {
+      no_trans: true,
+      width: 1000,
+      height: 700,
+      key: poem,
+      center: true,
+      color: Color.hex(0xb4beb4)
+    })
+
+
+
   }
 
+  life: number = 0
+
   _update() {
+
+    this.life += Time.delta
+    this.poem_text.position.y = 900 + Math.cos(this.life * 0.2) * 400
+
+    if (this._will_change_poem) {
+      if (this.poem_text.position.y > 1100) {
+        this._will_change_poem = false
+        this.poem_text.text = Poems.one()
+      }
+    }
 
     if (Time.on_interval(ticks.seconds * 3)) {
       for (let i = 0; i < Math.random() * 5; i++) {
