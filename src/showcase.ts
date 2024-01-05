@@ -187,6 +187,17 @@ export class Card extends Play {
     }
   }
 
+  _drop_rect?: DragStack
+  bind_drop_rect(_?: DragStack) {
+    this._drop_rect = _
+  }
+
+  _clickable!: Clickable
+
+  get drop_rect() {
+    return this._drop_rect?.drop_rect
+  }
+
   _dragging!: boolean
 
   get drag_decay() {
@@ -320,7 +331,7 @@ export class Card extends Play {
     this._target_speed = 0
 
     let self = this
-    this.make(Clickable, Vec2.make(16, 16).sub(this.anim.origin), {
+    this._clickable = this.make(Clickable, Vec2.make(16, 16).sub(this.anim.origin), {
       rect: Rect.make(0, 0, 170, 210),
       on_click() {
         if (self._on_click) {
@@ -366,6 +377,9 @@ export class Card extends Play {
         if (self._on_drop) {
           self._on_drop()
         }
+      },
+      get_drop_rect(e: Vec2) {
+        return self.drop_rect
       }
     })
 
@@ -563,6 +577,11 @@ export class Cards extends Play {
   frees!: Array<Card>
   used!: Array<Card>
 
+  bind_drop_rect(r?: DragStack) {
+    this.used.forEach(_ => _.bind_drop_rect(r))
+  }
+
+
   borrow() {
     let card = this.frees.shift()!
     this.used.push(card)
@@ -691,6 +710,7 @@ function sigmoid(x: number) {
 }
 
 export class DragStack extends Play {
+  
 
   get waiting() {
     return this._waiting
@@ -714,6 +734,15 @@ export class DragStack extends Play {
   get h() {
     return 50
   }
+
+  get drop_rect() {
+    let card = this._cards[0]
+    if (!card) {
+      return undefined
+    }
+    return card._clickable._scaled_rect
+  }
+
 
   drag(v: Vec2) {
     this._cards.forEach((_, i) => {

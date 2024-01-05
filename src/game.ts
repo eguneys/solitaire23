@@ -182,6 +182,7 @@ type ClickableData = {
   abs?: true,
   debug?: true,
   rect: Rect,
+  get_drop_rect?: (e: Vec2) => Rect,
   on_hover?: () => boolean,
   on_hover_end?: () => void,
   on_click_begin?: () => boolean,
@@ -292,7 +293,11 @@ export class Clickable extends Play {
 
           let _m = m.mul(Game.v_screen)
           let point = Rect.make(_m.x - 4, _m.y - 4, 8, 8)
+          point = self.data.get_drop_rect?.(_m) ?? point
           let rect = self.rect
+          if (self.data.get_drop_rect?.(_m)) {
+            console.log(rect, point, rect.overlaps(point))
+          }
           if (rect.overlaps(point)) {
             self.data.on_drop?.(m)
           }

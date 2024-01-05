@@ -425,6 +425,7 @@ export class SolitaireGame extends Play {
             self.dragging = self.make(DragStack, Vec2.zero, {})
             self.dragging.cards = cards
             self.cards.shadow_group = cards
+            self.cards.bind_drop_rect(self.dragging)
 
             self.drag_source = 'waste'
 
@@ -498,6 +499,7 @@ export class SolitaireGame extends Play {
                         self.dragging = self.make(DragStack, Vec2.zero, {})
                         self.dragging.cards = cards
                         self.cards.shadow_group = cards
+                        self.cards.bind_drop_rect(self.dragging)
 
                         self.drag_source = {
                           tableu: i,
@@ -532,6 +534,7 @@ export class SolitaireGame extends Play {
 
                       self.dragging!.wait_drop()
 
+                      console.log('TableuToTablue to', i)
                       self.cmd(TableuToTableu, {
                         from: tableu,
                         to: i,
@@ -579,6 +582,7 @@ export class SolitaireGame extends Play {
                     self.dragging = self.make(DragStack, Vec2.zero, {})
                     self.dragging.cards = cards
                     self.cards.shadow_group = cards
+                    self.cards.bind_drop_rect(self.dragging)
 
                     self.drag_source = { foundation: i }
 
@@ -914,7 +918,8 @@ export class SolitaireGame extends Play {
     } else if (cmd === WasteToFoundation) {
       this._release_cancel_drag()
     } else if (cmd === TableuToTableu) {
-      this._release_cancel_drag()
+      //this._release_cancel_drag()
+      this.dragging!._waiting = false
     } else if (cmd === TableuToFoundation) {
       this._release_cancel_drag()
     } else if (cmd === WasteToFoundation) {
