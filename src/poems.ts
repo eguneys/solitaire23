@@ -5,7 +5,8 @@ class Poems {
     static load = () => {
 
 
-        let verses = en.split('\r\n\r\n')
+        let verses = en.split(/\r?\n\r?\n/)
+        console.log(en, verses)
 
         return new Poems(verses)
 
