@@ -1,3 +1,6 @@
+export let n_seven = [1, 2, 3, 4, 5, 6, 7]
+export let n_four = [1, 2, 3, 4]
+
 export const suits = ['d', 'c', 'h', 's']
 export const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']
 

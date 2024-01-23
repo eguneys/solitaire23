@@ -31,6 +31,7 @@ import { Nine } from './nine'
 import { SolitaireResultsStore } from './store'
 import { SolitaireGameResult } from './statistics'
 import { Poems } from './poems'
+import { SolitaireGameDragful } from './solitaire_game_dragful'
 
 let rnd_screen_poss = [...Array(50).keys()].map(() => v_random().mul(v_screen.scale(0.8)))
 
@@ -662,7 +663,9 @@ export class SolitairePlay extends Play {
       this.make(GameOverConfetti, Vec2.make(0, 0), {})
     )
 
-    let game = this.make(SolitaireGame, Vec2.make(0, 0), {})
+    //let game = this.make(SolitaireGame, Vec2.make(0, 0), {})
+    let game = this.make(SolitaireGameDragful, Vec2.make(0, 0), {})
+
 
     this.over_confetties.push(
       this.make(GameOverConfetti, Vec2.make(0, 0), {})
@@ -702,6 +705,7 @@ export class SolitairePlay extends Play {
       SolitaireResultsStore.add_result(SolitaireGameResult.from_win(_, score))
     }
 
+    /*
     make_solitaire_back(game, on_score, on_new_game, on_game_over).then(back_res => {
       game.back_res = back_res
       game._collect_pov()
@@ -709,6 +713,7 @@ export class SolitairePlay extends Play {
 
       title.settings = back_res.game_pov.game.settings
     })
+    */
 
 
     let self = this
