@@ -26,3 +26,15 @@ export function arr_random<A>(arr: Array<A>, rng: RNG = random) {
 
 export const v_random = (rng: RNG = random) => Vec2.make(rng(), rng())
 export const v_random_h = (rng: RNG = random) => Vec2.make(rnd_h(rng), rnd_h(rng))
+
+
+/* Randomize array in-place using Durstenfeld shuffle algorithm */
+export function shuffleArray<T>(array: T[]): T[] {
+    for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+    return array
+}

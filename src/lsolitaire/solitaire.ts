@@ -11,7 +11,11 @@ export type Settings = {
 export class Stats {
 
     static empty() {
-        return new Stats()
+        return new Stats(0)
+    }
+
+    constructor(public score: number) {
+
     }
 
 }
@@ -53,6 +57,11 @@ export class Tableu {
 }
 
 export class Foundation {
+
+    get is_finished() {
+        return this.foundation.length === 13
+    }
+
     undo_from_foundation(cards: Card[]) {
         this.foundation.add_cards(cards)
     }
@@ -119,13 +128,13 @@ export class Stock {
 
 }
 
-interface IMove {
+export interface IMove {
     can(solitaire: Solitaire): boolean
     apply(solitaire: Solitaire): void
     undo(solitaire: Solitaire): void
 }
 
-class TableuToTableu implements IMove {
+export class TableuToTableu implements IMove {
 
     can(solitaire: Solitaire): boolean {
         return solitaire.can_tableu_to_tableu(this.from, this.to, this.i)
@@ -148,7 +157,7 @@ class TableuToTableu implements IMove {
     }
 }
 
-class TableuToFoundation implements IMove {
+export class TableuToFoundation implements IMove {
 
     can(solitaire: Solitaire): boolean {
         return solitaire.can_tableu_to_foundation(this.from, this.to, this.i)
@@ -172,7 +181,7 @@ class TableuToFoundation implements IMove {
 }
 
 
-class WasteToTableu implements IMove {
+export class WasteToTableu implements IMove {
 
     can(solitaire: Solitaire): boolean {
         return solitaire.can_waste_to_tableu(this.to)
@@ -193,7 +202,7 @@ class WasteToTableu implements IMove {
 }
 
 
-class WasteToFoundation implements IMove {
+export class WasteToFoundation implements IMove {
 
     can(solitaire: Solitaire): boolean {
         return solitaire.can_waste_to_foundation(this.to)
@@ -213,7 +222,7 @@ class WasteToFoundation implements IMove {
     }
 }
 
-class FoundationToTableu implements IMove {
+export class FoundationToTableu implements IMove {
 
     can(solitaire: Solitaire): boolean {
         return solitaire.can_foundation_to_tableu(this.from, this.to)
@@ -234,7 +243,7 @@ class FoundationToTableu implements IMove {
 }
 
 
-class HitStock implements IMove {
+export class HitStock implements IMove {
 
     can(solitaire: Solitaire): boolean {
         return solitaire.can_hit_stock()
@@ -252,7 +261,7 @@ class HitStock implements IMove {
     }
 }
 
-class HitRecycle implements IMove {
+export class HitRecycle implements IMove {
 
     can(solitaire: Solitaire): boolean {
         return solitaire.can_hit_recycle()
@@ -270,6 +279,17 @@ class HitRecycle implements IMove {
 
 
 export class Solitaire {
+    
+
+    get is_finished() {
+        return this.foundations.every(_ => _.is_finished)
+    }
+
+
+
+    get score() {
+        return this.stats.score
+    }
 
     static make = (settings: Settings, deck: Array<Card>) => {
 
@@ -307,6 +327,14 @@ export class Solitaire {
         readonly foundations: Foundation[],
         readonly stock: Stock) {}
 
+    undo() {
+        let move = this.moves.pop()
+        if (move) {
+            move.undo(this)
+            return move
+        }
+        return undefined
+    }
 
     tableu_to_tableu(from: number, to: number, i: number): [Card[], Card | undefined] {
 

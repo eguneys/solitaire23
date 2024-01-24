@@ -26,12 +26,14 @@ import { Button } from './ui'
 import { Card } from './showcase'
 import { SolitaireGame } from './solitaire_game'
 import { make_solitaire_back } from './solitaire_back'
-import { card_sort_key, Settings } from 'lsolitaire'
+//import { card_sort_key, Settings } from 'lsolitaire'
 import { Nine } from './nine'
 import { SolitaireResultsStore } from './store'
 import { SolitaireGameResult } from './statistics'
 import { Poems } from './poems'
-import { SolitaireGameDragful } from './solitaire_game_dragful'
+import { SolitaireGameDragful } from "./SolitaireGameDragful"
+import { card_sort_key } from './lsolitaire/types'
+import { Settings } from './lsolitaire/solitaire'
 
 let rnd_screen_poss = [...Array(50).keys()].map(() => v_random().mul(v_screen.scale(0.8)))
 
@@ -714,6 +716,14 @@ export class SolitairePlay extends Play {
       title.settings = back_res.game_pov.game.settings
     })
     */
+
+    const on_init = (settings: Settings) => {
+      Sound.music('main')
+
+      title.settings = settings
+    }
+
+    game.init_and_set_callbacks(on_score, on_new_game, on_game_over, on_init)
 
 
     let self = this
