@@ -30,6 +30,9 @@ export abstract class Play {
   scale: Vec2 = Vec2.one
 
 
+  hit_area?: Rect
+  debug_hit: boolean = false
+
   coroutines: Array<Coroutine> = []
 
   routine(coroutine: Coroutine) {
@@ -148,7 +151,7 @@ export abstract class Play {
 
 
 
-  make<T extends Play>(ctor: { new(...args: any[]): T}, position: Vec2, data: any) {
+  make<T extends Play>(ctor: { new(...args: any[]): T}, position: Vec2 = Vec2.zero, data: any = {}) {
     let res = this._make(ctor, position, data)
     this._add_object(res)
     return res
@@ -214,6 +217,9 @@ export abstract class Play {
     batch.push_matrix(Mat3x2.create_transform(this.position, this.origin, this.scale, this.rotation))
     this.g_position = Vec2.transform(Vec2.zero, batch.m_matrix)
     this._draw_children(batch)
+    if (this.hit_area && this.debug_hit) {
+      batch.rect(this.hit_area, Color.red)
+    }
     batch.pop_matrix()
   }
   _dispose() {}

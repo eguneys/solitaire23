@@ -330,6 +330,8 @@ export class Card extends Play {
     this._speed = 0
     this._target_speed = 0
 
+    this.hit_area = Rect.make(16 - this.anim.origin.x, 16 - this.anim.origin.y, 170, 210)
+
     let self = this
     this._clickable = this.make(Clickable, Vec2.make(16, 16).sub(this.anim.origin), {
       rect: Rect.make(0, 0, 170, 210),

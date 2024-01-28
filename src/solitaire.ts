@@ -31,7 +31,7 @@ import { Nine } from './nine'
 import { SolitaireResultsStore } from './store'
 import { SolitaireGameResult } from './statistics'
 import { Poems } from './poems'
-import { SolitaireGameDragful } from "./SolitaireGameDragful"
+import { SolitaireGameDragful } from "./solitaire_game_dragful"
 import { card_sort_key } from './lsolitaire/types'
 import { Settings } from './lsolitaire/solitaire'
 

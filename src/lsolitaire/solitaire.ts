@@ -294,7 +294,7 @@ export class Solitaire {
     static make = (settings: Settings, deck: Array<Card>) => {
 
         let foundations = suits.map(suit => Foundation.make())
-        let tableus = n_seven.map(i => Tableu.make(deck, i))
+        let tableus = n_seven.map(i => Tableu.make(deck, i - 1))
         let stock = Stock.make(deck)
         let nb_recycles = 0
 
