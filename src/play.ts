@@ -33,6 +33,10 @@ export abstract class Play {
   hit_area?: Rect
   debug_hit: boolean = false
 
+  get ghit_area() {
+    return this.hit_area?.add(this.g_position)
+  }
+
   coroutines: Array<Coroutine> = []
 
   routine(coroutine: Coroutine) {

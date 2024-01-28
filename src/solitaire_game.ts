@@ -362,9 +362,9 @@ export class SolitaireGame extends Play {
     let c = this.make(Clickable, Vec2.zero, {
       rect: Rect.make(0, 0, 1920, 1080),
       on_up() {
-        if (self.dragging && !self.dragging.waiting) {
-          self._release_cancel_drag()
-        }
+        //if (self.dragging && !self.dragging.waiting) {
+        //  self._release_cancel_drag()
+        //}
       },
       on_click() {
         if (self.click_source) {
@@ -515,14 +515,14 @@ export class SolitaireGame extends Play {
                   },
                   on_front_drop() {
                     if (self.drag_source === 'waste') {
-                      self.dragging!.wait_drop()
+                      //self.dragging!.wait_drop()
                       self.cmd(WasteToTableu, {
                         to: i
                       })
                     } else if (isFoundationDragSource(self.drag_source!)) {
                       let { foundation } = self.drag_source!
 
-                      self.dragging!.wait_drop()
+                      //self.dragging!.wait_drop()
 
                       self.cmd(FoundationToTableu, {
                         from: foundation,
@@ -532,7 +532,7 @@ export class SolitaireGame extends Play {
 
                       let { tableu, i: _i } = self.drag_source!
 
-                      self.dragging!.wait_drop()
+                      //self.dragging!.wait_drop()
 
                       console.log('TableuToTablue to', i)
                       self.cmd(TableuToTableu, {
@@ -594,7 +594,7 @@ export class SolitaireGame extends Play {
               },
               on_front_drop() {
                 if (self.drag_source === 'waste') {
-                  self.dragging!.wait_drop()
+                  //self.dragging!.wait_drop()
                   self.cmd(WasteToFoundation, {
                     to: i
                   })
@@ -603,7 +603,7 @@ export class SolitaireGame extends Play {
                   let { tableu, i: _i } = self.drag_source!
 
                   if (_i === 1) {
-                    self.dragging!.wait_drop()
+                    //self.dragging!.wait_drop()
                     self.cmd(TableuToFoundation, {
                       from: tableu,
                       to: i,
@@ -919,7 +919,7 @@ export class SolitaireGame extends Play {
       this._release_cancel_drag()
     } else if (cmd === TableuToTableu) {
       //this._release_cancel_drag()
-      this.dragging!._waiting = false
+      //this.dragging!._waiting = false
     } else if (cmd === TableuToFoundation) {
       this._release_cancel_drag()
     } else if (cmd === WasteToFoundation) {

@@ -1,11 +1,13 @@
+import Sound from './sound'
 import { Vec2 } from "blah";
 import { Settings, Solitaire, IMove } from "./lsolitaire/solitaire";
-import { Cards as DeckCards } from "./lsolitaire/types";
+import { Cards as DeckCards, n_seven } from "./lsolitaire/types";
 import { Play } from "./play";
-import { Stack, Cards, Card } from "./showcase";
+import { Stack, Cards, Card, Tableu, DragStack } from "./showcase";
 import { SolitaireStore } from "./store";
 import { shuffleArray } from "./util";
 import Game from "./game";
+import { ticks } from "./shared";
 
 let back: Solitaire
 
@@ -102,41 +104,129 @@ export class SolitaireGameDragful extends Play {
 
 }
 
+export type TableuDrag = {
+  tableu: number,
+  i: number
+}
+
+export type WasteDrag = 'waste'
+export type FoundationDrag = {
+  foundation: number
+}
+
+export type DragSource = TableuDrag | WasteDrag | FoundationDrag
+
+
+const isTableuDragSource = (_: DragSource): _ is TableuDrag => {
+  return (typeof _ === 'object' && (_ as TableuDrag).tableu !== undefined)
+}
+
+const isFoundationDragSource = (_: DragSource): _ is FoundationDrag => {
+  return (typeof _ === 'object' && (_ as FoundationDrag).foundation !== undefined)
+}
+
+type WasteClick = 'waste'
+
+export type ClickSource = WasteClick | TableuDrag
+const isTableuClickSource = (_: ClickSource): _ is TableuDrag => {
+  return typeof _ === 'object' && typeof _.tableu === 'number'
+}
+
 
 
 function sigmoid(x: number) {
   return 1 / (1 + Math.exp(-x));
 }
 
-let back_h = 20
+let back_h = 33
 class SolitaireCards extends Play {
   
-  tableu_backs!: Card[][]
-  tableu_fronts!: Card[][]
+  cards!: Cards
+  tableus!: Tableu[]
 
-  drag_tableu?: [number, Vec2, Card[]]
+  drag_stack?: DragStack
+  drag_source?: DragSource
 
   _init() {
 
-    this.tableu_backs = []
-    this.tableu_fronts = []
+    this.cards = this.make(Cards)
+
+    let tableu_x = 340
+    let tableu_gap = 200
+    let tableu_y = 200
+    this.tableus = n_seven.map(i => this.make(Tableu, Vec2.make(tableu_x + tableu_gap * (i - 1), tableu_y)))
 
     this._collect_cards()
 
-
+    let hovering_tableu: Tableu | undefined = undefined
     let self = this
     this.unbindable_input({
+      on_hover(e) {
+        e = e.mul(Game.v_screen)
+
+        let will_hovering_tableu: Tableu | undefined = undefined
+        let will_hover_index: number = -1
+        for (let i = 0; i < self.tableus.length; i++) {
+          let tableu = self.tableus[i]
+          let hover_index = tableu.find_hover_begin(e)
+          if (hover_index !== -1) {
+            will_hovering_tableu = tableu
+            will_hover_index = hover_index
+            break
+          }
+        }
+        if (hovering_tableu) {
+         if (hovering_tableu !== will_hovering_tableu || !hovering_tableu?.is_hovering_at(will_hover_index)) {
+          hovering_tableu.hover_end()
+          will_hovering_tableu?.hover_begin(will_hover_index)
+          hovering_tableu = will_hovering_tableu
+         } else {
+         }
+
+        } else {
+          if (will_hovering_tableu) {
+            will_hovering_tableu.hover_begin(will_hover_index)
+            hovering_tableu = will_hovering_tableu
+          }
+        }
+        return false
+      },
       on_up(e, r) {
 
-        if (self.drag_tableu) {
+        if (self.drag_stack) {
 
-          let [i, decay, cards] = self.drag_tableu
 
-          cards.forEach(_ =>  _.lerp_release())
-          self.tableu_fronts[i].push(...cards)
-          self.position_tableu_front_cards(i)
+          let tableu_i = -1
+          if (isTableuDragSource(self.drag_source!)) {
+            tableu_i = self.drag_source.tableu
+          }
 
-          self.drag_tableu = undefined
+          let cards = self.drag_stack.lerp_release()
+
+          let c0 = cards[0]
+          let to_i = self.tableu_find_max_overlap(c0, tableu_i)
+
+          if (to_i !== -1) {
+            self.tableus[to_i].add_fronts(cards)
+          } else {
+            if (self.drag_source! === 'waste') {
+
+            } else if (isFoundationDragSource(self.drag_source!)) {
+
+            } else {
+              let { tableu, i } = self.drag_source!
+              self.tableus[tableu].add_fronts(cards)
+            }
+
+            Sound.play('cancel')
+          }
+
+          self.drag_stack.dispose()
+          self.drag_stack = undefined
+          self.drag_source = undefined
+          cards[0].after_ease(() => {
+            self.cards.shadow_group = undefined
+          })
         }
 
         return false
@@ -144,31 +234,32 @@ class SolitaireCards extends Play {
       on_drag(d, d0) {
         let e = d.e.mul(Game.v_screen)
         if (d.m && !d0?.m) {
-          let found = false
-          self.tableu_fronts.forEach((fronts, i) => {
-            let splice_i = fronts.findIndex(c => c.hit_area?.add(c.g_position)!.contains_point(e))
+          for (let i = 0; i < self.tableus.length; i++) {
+            let tableu = self.tableus[i]
+            let drag_tableu = tableu.find_drag_begin(e)
 
-            if (splice_i !== -1) {
-              let drags = fronts.splice(splice_i)
+            if (drag_tableu) {
+              let [drag_tableu_cards, i_card] = drag_tableu
+              self.drag_stack = self.make(DragStack)
+              self.drag_stack.cards = drag_tableu_cards
+              self.cards.shadow_group = drag_tableu_cards
 
-              drags.forEach(_ => _.send_front())
-              self.position_tableu_front_cards(i)
-              
-              let decay = e.sub(drags[0].position)
-              self.drag_tableu = [i, decay, drags]
-              found = true
+              let c0 = drag_tableu_cards[0]
+              c0._lerp_drag_shadow = 0
+              c0._dragging = true
+              c0._drag_decay = e.sub(c0.position)
+       
+              self.drag_source = { tableu: i, i: i_card }
+
+              return true
             }
-          })
-
-          return found
+          }
+          return false
         }
         if (d.m && d0?.m) {
-
-          if (self.drag_tableu) {
-
-            let e = d.m.mul(Game.v_screen)
-            let [i, decay, cards] = self.drag_tableu
-            self.position_drag_stack(cards, e, decay)
+          let e = d.m.mul(Game.v_screen)
+          if (self.drag_stack) {
+            self.drag_stack.drag(e)
           }
         }
         return false
@@ -178,53 +269,47 @@ class SolitaireCards extends Play {
 
   _collect_cards() {
 
-    let frees = DeckCards.deck.map(card => this.make(Card))
 
     back.tableus.forEach((tableu, i) => {
 
       let backs = tableu.back.cards.map(card => {
-        let c = frees.pop()!
+        let c = this.cards.borrow()
         c.flip_back()
         return c
       })
 
-      this.position_stack_cards(backs, Vec2.make(360 + i * 200, 180), back_h)
-      this.tableu_backs[i] = backs
-
-
       let fronts = tableu.front.cards.map(card => {
-        let c = frees.pop()!
+        let c = this.cards.borrow()
         c.card = card
         c.flip_front()
         return c
       })
 
-      this.tableu_fronts[i] = fronts
-      this.position_tableu_front_cards(i)
+      this.tableus[i].add_backs(backs)
+      this.tableus[i].add_fronts(fronts)
 
     })
   }
 
-  position_drag_stack(cards: Card[], v: Vec2, drag_decay: Vec2) {
-    let h = 50
-    cards.forEach((_, i) => {
-      let _v = v.add(Vec2.make(0, h * i).sub(drag_decay))
-      let t = 1 - sigmoid((i / cards.length) * 2)
-      _.lerp_position(_v, t)
-    })
-  }
+  tableu_find_max_overlap(c0: Card, except_i: number) {
+    let max_to_i = -1
+    let max_overlap = 1920
 
-  position_tableu_front_cards(i: number, i_gap?: number) {
-    let backs = this.tableu_backs[i]
-    let fronts = this.tableu_fronts[i]
-    this.position_stack_cards(fronts, Vec2.make(360 + i * 200, 180 + backs.length * back_h), 100)
-  }
-
-  position_stack_cards(cards: Card[], orig: Vec2, h: number, _i_gap?: number) {
-    cards.forEach((card, i) => {
-      card.send_front()
-      let i_gap = (_i_gap !== undefined && i > _i_gap) ? i + 0.5 : i
-      card.ease_position(orig.add(Vec2.make(0, i_gap * h)))
+    this.tableus.forEach((tableu, to_i) => {
+      if (to_i !== except_i) {
+        let to_top = tableu.fronts.top_card
+        if (to_top) {
+          if (to_top.ghit_area!.overlaps(c0.ghit_area!)) {
+            let d = to_top.g_position.distance(c0.g_position)
+            if (d < max_overlap) {
+              max_overlap = d
+              max_to_i = to_i
+            }
+          }
+        }
+      }
     })
+
+    return max_to_i
   }
 }

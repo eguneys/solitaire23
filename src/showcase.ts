@@ -194,10 +194,6 @@ export class Card extends Play {
 
   _clickable!: Clickable
 
-  get drop_rect() {
-    return this._drop_rect?.drop_rect
-  }
-
   _dragging!: boolean
 
   get drag_decay() {
@@ -332,6 +328,7 @@ export class Card extends Play {
 
     this.hit_area = Rect.make(16 - this.anim.origin.x, 16 - this.anim.origin.y, 170, 210)
 
+    /*
     let self = this
     this._clickable = this.make(Clickable, Vec2.make(16, 16).sub(this.anim.origin), {
       rect: Rect.make(0, 0, 170, 210),
@@ -384,6 +381,7 @@ export class Card extends Play {
         return self.drop_rect
       }
     })
+    */
 
   }
 
@@ -713,15 +711,6 @@ function sigmoid(x: number) {
 
 export class DragStack extends Play {
   
-
-  get waiting() {
-    return this._waiting
-  }
-  _waiting: boolean = false
-  wait_drop() {
-    this._waiting = true
-  }
-
   _cards!: Array<Card>
   set cards(cards: Array<Card>) {
     this._cards = cards.slice(0)
@@ -737,15 +726,6 @@ export class DragStack extends Play {
     return 50
   }
 
-  get drop_rect() {
-    let card = this._cards[0]
-    if (!card) {
-      return undefined
-    }
-    return card._clickable._scaled_rect
-  }
-
-
   drag(v: Vec2) {
     this._cards.forEach((_, i) => {
       let _v = v.add(Vec2.make(0, this.h * i).sub(this.drag_decay))
@@ -756,17 +736,13 @@ export class DragStack extends Play {
 
   lerp_release() {
     let cards = this._cards.splice(0)
-
     cards.forEach(_ => _.lerp_release())
-
     return cards
   }
-
 
   _init() {
     this._cards = []
   }
-
 }
 
 
@@ -778,6 +754,8 @@ type TableuData = {
 }
 
 export class Tableu extends Play {
+ 
+  
   get data() {
     return this._data as TableuData
   }
@@ -790,11 +768,40 @@ export class Tableu extends Play {
     return this.backs.top_position
   }
 
-  release_all() {
-    return this.free()
+  _hover_index?: number
+  hover_end() {
+    if (this._hover_index !== undefined) {
+      this.fronts.cards[this._hover_index]._will_hover_end = true
+      this._hover_index = undefined
+    }
+  }
+
+  hover_begin(hover_index: number) {
+    this.fronts.cards[hover_index]._will_hover = true
+    this._hover_index = hover_index
+  }
+  is_hovering_at(hover_index: number) {
+    return this._hover_index === hover_index
   }
 
 
+  find_hover_begin(e: Vec2) {
+    let i = this.fronts.cards.findLastIndex(c => c.ghit_area?.contains_point(e))
+    return i
+  }
+
+  find_drag_begin(e: Vec2): [Card[], number] | undefined {
+    this.hover_end()
+    let i = this.fronts.cards.findLastIndex(c => c.ghit_area?.contains_point(e))
+    if (i !== -1) {
+      return [this.fronts.cards.splice(i), i]
+    }
+    return undefined
+  }
+
+  release_all() {
+    return this.free()
+  }
 
   free() {
     return [
@@ -809,50 +816,12 @@ export class Tableu extends Play {
   }
 
   add_fronts(cards: Array<Card>) {
-
     this.fronts.add_cards(cards)
     cards.forEach(_ => _.flip_front())
-
-    let self = this
-    let l = this.fronts.cards.length
-    this.fronts.cards.forEach((_, i) => {
-      _.bind_drop(undefined)
-      _.bind_drag((e: Vec2) => {
-        self.data.on_front_drag(l - i, e)
-      })
-      _.bind_click(() => {
-        self.data.on_front_click(l - i)
-        return true
-      })
-    })
-    this.fronts.top_card?.bind_drop(() => {
-      self.data.on_front_drop()
-    })
-    this.open_drop_target()
   }
 
   remove_fronts(i: number) {
     let cards = this.fronts.remove_cards(i)
-    cards.forEach(_ => {
-      _.bind_drop(undefined)
-    })
-    let self = this
-    let l = this.fronts.cards.length
-    this.fronts.cards.forEach((_, i) => {
-      _.bind_drop(undefined)
-      _.bind_drag((e: Vec2) => {
-        self.data.on_front_drag(l - i, e)
-      })
-      _.bind_click(() => {
-        self.data.on_front_click(l - i)
-        return true
-      })
-    })
-    this.fronts.top_card?.bind_drop(() => {
-      self.data.on_front_drop()
-    })
-
-    this.open_drop_target()
     return cards
   }
 
@@ -861,28 +830,11 @@ export class Tableu extends Play {
     card.card = front
     card.flip_front()
     this.fronts.ease_position(this.top_back_position)
-    this.fronts.top_card?.bind_drop(undefined)
     this.fronts.add_cards([card])
-    let self = this
-    this.fronts.top_card.bind_drag((e: Vec2) => {
-      self.data.on_front_drag(1, e)
-    })
-    this.fronts.top_card.bind_drop(() => {
-      self.data.on_front_drop()
-
-    })
-    this.fronts.top_card.bind_click(() => {
-      self.data.on_front_click(1)
-      return true
-    })
   }
 
   get empty() {
     return this.fronts.length === 0 && this.backs.length === 0
-  }
-
-  open_drop_target() {
-    this.drop_target.visible = this.empty
   }
 
   flip_back() {
@@ -890,28 +842,15 @@ export class Tableu extends Play {
     card.flip_back()
     this.backs.add_cards([card])
     this.fronts.ease_position(this.top_back_position)
-    card.bind_drop(undefined)
   }
 
   backs!: Stack
   fronts!: Stack
-  drop_target!: CardDropTarget
 
   _init() {
 
-    this.drop_target = this.make(CardDropTarget, Vec2.make(0, 0), {})
-    this.drop_target.bind_drop(() => {
-      this.data.on_front_drop()
-    })
-    this.drop_target.bind_click(() => {
-      this.data.on_front_click(1)
-      return true
-    })
-
     this.backs = this.make(Stack, Vec2.make(0, 0), { h: 33 })
     this.fronts = this.make(Stack, Vec2.make(0, 0), {})
-
-    this.open_drop_target()
   }
 
 
