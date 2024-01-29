@@ -662,6 +662,14 @@ export class Stack extends Play {
     his.forEach(_ => _.set_highlight(highlight))
   }
 
+  unshift_cards(cards: Card[]) {
+    cards.forEach(_ => _.send_front())
+    for (let i = cards.length - 1; i >= 0; i--) {
+      this.cards.unshift(cards[i])
+    }
+    this._reposition()
+  }
+
   add_cards(cards: Array<Card>) {
     cards.forEach(_ => _.send_front())
     this.cards.push(...cards)
@@ -669,7 +677,13 @@ export class Stack extends Play {
   }
 
   remove_cards(n: number) {
-    let cards = this.cards.splice(this.cards.length - n, this.cards.length)
+    let cards = this.cards.splice(-n)
+    this._reposition()
+    return cards
+  }
+
+  shift_cards(waste: number) {
+    let cards = this.cards.splice(0, waste)
     this._reposition()
     return cards
   }
@@ -754,8 +768,9 @@ type TableuData = {
 }
 
 export class Tableu extends Play {
+
+  hit_area = Rect.make(-70, -70, 170, 210)
  
-  
   get data() {
     return this._data as TableuData
   }

@@ -1,7 +1,7 @@
 import Sound from './sound'
 import { Rect, Vec2 } from "blah";
-import { Settings, Solitaire, IMove, TableuToTableu, HitStock, HitRecycle, WasteToTableu } from "./lsolitaire/solitaire";
-import { Card as OCard, Cards as DeckCards, n_seven } from "./lsolitaire/types";
+import { Settings, Solitaire, IMove, TableuToTableu, HitStock, HitRecycle, WasteToTableu, WasteToFoundation, TableuToFoundation, FoundationToTableu } from "./lsolitaire/solitaire";
+import { Card as OCard, Cards as DeckCards, n_seven, n_four } from "./lsolitaire/types";
 import { Play } from "./play";
 import { Stack, Cards, Card, Tableu, DragStack } from "./showcase";
 import { SolitaireStore } from "./store";
@@ -36,7 +36,7 @@ export class SolitaireGameDragful extends Play {
 
   cmd(cmd: IMove) {
     if (cmd.can(back)) {
-      cmd.apply(back)
+      back.apply(cmd)
       this.apply(cmd)
 
 
@@ -66,10 +66,9 @@ export class SolitaireGameDragful extends Play {
     throw new Error("Method not implemented.");
   }
   undo(cmd: IMove) {
-    throw new Error("Method not implemented.");
+    this.cards.undo(cmd)
   }
   apply(cmd: IMove) {
-
     this.cards.apply(cmd)
   }
   cant(cmd: IMove) {
@@ -95,7 +94,7 @@ export class SolitaireGameDragful extends Play {
     throw new Error('Method not implemented.');
   }
   request_undo() {
-    throw new Error('Method not implemented.');
+    this.cmd_undo()
   }
 
   cards!: SolitaireCards
@@ -162,6 +161,7 @@ class SolitaireCards extends Play {
   tableus!: Tableu[]
   stock!: Stock
   recycle_view!: RecycleView
+  foundations!: Foundation[]
 
   drag_stack?: DragStack
   drag_source?: DragSource
@@ -185,8 +185,14 @@ class SolitaireCards extends Play {
     let tableu_gap = 200
     let tableu_y = 200
 
+    let foundation_x = 1790,
+      foundation_y = 166,
+      foundation_h = 240
+
     this.tableus = n_seven.map(i => this.make(Tableu, Vec2.make(tableu_x + tableu_gap * (i - 1), tableu_y)))
     this.stock = this.make(Stock, Vec2.make(stock_x, stock_y))
+
+    this.foundations = n_four.map(i => this.make(Foundation, Vec2.make(foundation_x, foundation_y + foundation_h * (i - 1))))
 
     this._collect_cards()
 
@@ -245,40 +251,61 @@ class SolitaireCards extends Play {
 
           let c0 = self.drag_stack._cards[0]
           let to_i = self.tableu_find_max_overlap(c0, tableu_i)
+          let to_fi = self.foundation_find_max_overlap(c0)
+          let to_i0 = self.tableu_find_overlap_zero(c0, tableu_i)
 
-          if (to_i !== -1) {
+          if (to_i !== -1 || to_i0 !== -1) {
+
+            if (to_i === -1 && to_i0 !== -1) {
+              to_i = to_i0
+            }
 
             if (self.drag_source! === 'waste') {
-
               self.data.on_cmd(new WasteToTableu(to_i))
             } else if (isTableuDragSource(self.drag_source!)) {
               let { i, tableu } = self.drag_source
               self.data.on_cmd(new TableuToTableu(tableu_i, to_i, i))
-            }
-
-          } else {
-
-            let cards = self.drag_stack.lerp_release()
-            if (self.drag_source! === 'waste') {
-              self.stock.add_waste(cards)
             } else if (isFoundationDragSource(self.drag_source!)) {
-
-            } else {
-              let { tableu, i } = self.drag_source!
-              self.tableus[tableu].add_fronts(cards)
+              let { foundation } = self.drag_source
+              self.data.on_cmd(new FoundationToTableu(foundation, to_i))
             }
 
-            Sound.play('cancel')
-            self.drag_stack.dispose()
-            self.drag_stack = undefined
-            self.drag_source = undefined
-            cards[0].after_ease(() => {
-              self.cards.shadow_group = undefined
-            })
+            return true
+          } else if (to_fi !== -1 && !isFoundationDragSource(self.drag_source!)) {
+            if (self.drag_source! === 'waste') {
+              self.data.on_cmd(new WasteToFoundation(to_fi))
+              return true
+            } else if (isTableuDragSource(self.drag_source!)) {
+              let { i, tableu } = self.drag_source
+              if (i === 1) {
+                self.data.on_cmd(new TableuToFoundation(tableu_i, to_fi, i))
+                return true
+              }
+            }
           }
+
+          let cards = self.drag_stack.lerp_release()
+          if (self.drag_source! === 'waste') {
+            self.stock.add_waste(cards)
+          } else if (isFoundationDragSource(self.drag_source!)) {
+
+            let { foundation } = self.drag_source!
+            self.foundations[foundation].add_cards(cards)
+          } else {
+            let { tableu, i } = self.drag_source!
+            self.tableus[tableu].add_fronts(cards)
+          }
+
+          Sound.play('cancel')
+          self.drag_stack.dispose()
+          self.drag_stack = undefined
+          self.drag_source = undefined
+          cards[0].after_ease(() => {
+            self.cards.shadow_group = undefined
+          })
         }
 
-        return false
+        return true
       },
       on_drag(d, d0) {
         let e = d.e.mul(Game.v_screen)
@@ -298,8 +325,33 @@ class SolitaireCards extends Play {
        
               self.drag_source = 'waste'
 
+              Sound.play('drag1')
+
               return true
           }
+
+          for (let i = 0; i < self.foundations.length; i++) {
+            let foundation = self.foundations[i]
+            let drag_foundation = foundation.find_drag_begin(e)
+
+            if (drag_foundation) {
+              self.drag_stack = self.make(DragStack)
+              self.drag_stack.cards = [drag_foundation]
+              self.cards.shadow_group = [drag_foundation]
+
+              let c0 = drag_foundation
+              c0._lerp_drag_shadow = 0
+              c0._dragging = true
+              c0._drag_decay = e.sub(c0.position)
+       
+              self.drag_source = { foundation: i }
+
+              Sound.play(`drag1`)
+
+              return true
+            }
+          }
+
 
           for (let i = 0; i < self.tableus.length; i++) {
             let tableu = self.tableus[i]
@@ -317,6 +369,9 @@ class SolitaireCards extends Play {
               c0._drag_decay = e.sub(c0.position)
        
               self.drag_source = { tableu: i, i: i_card }
+
+              let drag_123 = Math.min(3, Math.floor(i_card / 3) + 1)
+              Sound.play(`drag${drag_123}`)
 
               return true
             }
@@ -381,6 +436,47 @@ class SolitaireCards extends Play {
   }
 
 
+  undo(cmd: IMove) {
+    Sound.play('undo2')
+    if (cmd instanceof HitStock) {
+      this.stock.undo_hit(cmd.hit_data[1], cmd.hit_data[0])
+      this._refresh_recycle()
+    } else if (cmd instanceof HitRecycle) {
+      this.stock.undo_recycle(cmd.data.length)
+      this._refresh_recycle()
+    } else if (cmd instanceof TableuToTableu) {
+      let flip = cmd.flip
+      let { from, to, i } = cmd
+      if (flip) {
+        this.tableus[from].flip_back()
+      }
+      let cards = this.tableus[to].remove_fronts(i)
+      this.tableus[from].add_fronts(cards)
+    } else if (cmd instanceof WasteToTableu) {
+
+      let { to } = cmd
+
+      let cards = this.tableus[to].remove_fronts(1)
+
+      this.stock.add_waste(cards)
+    } else if (cmd instanceof TableuToFoundation) {
+      let flip = cmd.flip
+      let { from, to } = cmd
+      if (flip) {
+        this.tableus[from].flip_back()
+      }
+      let cards = this.foundations[to].remove_cards(1)
+      this.tableus[from].add_fronts(cards)
+    } else if (cmd instanceof WasteToFoundation) {
+      let { to } = cmd
+      let cards = this.foundations[to].remove_cards(1)
+      this.stock.add_waste(cards)
+    } else if (cmd instanceof FoundationToTableu) {
+      let { from, to } = cmd
+      let cards = this.tableus[to].remove_fronts(1)
+      this.foundations[from].add_cards(cards)
+    }
+  }
 
   apply(cmd: IMove) {
     let dispose_drag_cards
@@ -407,6 +503,51 @@ class SolitaireCards extends Play {
         this.tableus[to].add_fronts(cards)
         dispose_drag_cards = cards
       }
+    } else if (cmd instanceof WasteToFoundation) {
+      let { to } = cmd
+
+      if (!this.drag_stack) {
+        /*
+        this._release_cancel_highlight()
+        let cards = this.stock.remove_waste(1)
+        this.foundations[to].add_cards(cards)
+        */
+      } else {
+  
+        let cards = this.drag_stack!.lerp_release()
+        this.foundations[to].add_cards(cards)
+        dispose_drag_cards = cards
+      }
+
+
+    } else if (cmd instanceof TableuToFoundation) {
+      let flip = cmd.flip
+      let { from, to } = cmd
+
+      if (!this.drag_stack) {
+
+        /*
+        this._release_cancel_highlight()
+
+        let cards = this.tableus[from].remove_fronts(1)
+        this.foundations[to].add_cards(cards)
+        */
+      } else {
+        let cards = this.drag_stack!.lerp_release()
+        this.foundations[to].add_cards(cards)
+
+        dispose_drag_cards = cards
+      }
+
+      if (flip) {
+        this.tableus[from].flip_front(flip)
+      }
+    } else if (cmd instanceof FoundationToTableu) {
+      let { from, to } = cmd
+      let cards = this.drag_stack!.lerp_release()
+      this.tableus[to].add_fronts(cards)
+
+      dispose_drag_cards = cards
     } else if (cmd instanceof TableuToTableu) {
 
       let { flip } = cmd
@@ -452,6 +593,23 @@ class SolitaireCards extends Play {
     }
   }
 
+  foundation_find_max_overlap(c0: Card) {
+    let max_to_i = -1
+    let max_overlap = 1920
+
+    this.foundations.forEach((to_top, to_i) => {
+      if (to_top.ghit_area!.overlaps(c0.ghit_area!)) {
+        let d = to_top.g_position.distance(c0.g_position)
+        if (d < max_overlap) {
+          max_overlap = d
+          max_to_i = to_i
+        }
+      }
+    })
+
+    return max_to_i
+  }
+
   tableu_find_max_overlap(c0: Card, except_i: number) {
     let max_to_i = -1
     let max_overlap = 1920
@@ -473,8 +631,59 @@ class SolitaireCards extends Play {
 
     return max_to_i
   }
+
+
+  tableu_find_overlap_zero(c0: Card, except_i: number) {
+    let max_to_i = -1
+    let max_overlap = 1920
+
+    this.tableus.forEach((tableu, to_i) => {
+      if (to_i !== except_i) {
+        if (tableu.ghit_area!.overlaps(c0.ghit_area!)) {
+          let d = tableu.g_position.distance(c0.g_position)
+          if (d < max_overlap) {
+            max_overlap = d
+            max_to_i = to_i
+          }
+        }
+      }
+    })
+
+    return max_to_i
+
+  }
+
 }
 
+class Foundation extends Play {
+  hit_area = Rect.make(-70, -70, 170, 210)
+
+  stack!: Stack
+
+  _init() {
+    this.stack = this.make(Stack, Vec2.zero, { h: 0 })
+  }
+
+  find_drag_begin(e: Vec2) {
+    let c0 = this.stack.top_card
+
+    if (c0 && c0.ghit_area?.contains_point(e)) {
+      this.stack.remove_cards(1)
+      return c0
+    }
+    return undefined
+  }
+
+  remove_cards(n: number) {
+    return this.stack.remove_cards(n)
+  }
+
+  add_cards(cards: Card[]) {
+    this.stack.add_cards(cards)
+  }
+
+
+}
 
 class Stock extends Play {
   release_all() {
@@ -558,10 +767,10 @@ class Stock extends Play {
     waste.forEach(_ => {
       _.flip_back()
     })
-    this.waste_hidden.add_cards(waste)
+    this.waste_hidden.unshift_cards(waste)
     this.waste.add_cards(cards)
 
-    reverse_forEach(this.waste_hidden.cards, _ => _.send_back())
+    //reverse_forEach(this.waste_hidden.cards, _ => _.send_back())
 
     Sound.play('hit')
   }
@@ -569,7 +778,7 @@ class Stock extends Play {
   recycle() {
 
     let waste = this.waste.remove_cards(this.waste.length)
-    this.waste_hidden.add_cards(waste)
+    this.waste_hidden.unshift_cards(waste)
 
     let cards = this.waste_hidden.remove_cards(this.waste_hidden.length)
 
@@ -587,7 +796,7 @@ class Stock extends Play {
 
     this.waste_hidden.add_cards(stock_to_hidden)
 
-    let hidden_to_waste = this.waste_hidden.remove_cards(waste)
+    let hidden_to_waste = this.waste_hidden.shift_cards(waste)
 
     stock_to_hidden.forEach(_ => _.flip_front())
     hidden_to_waste.forEach(_ => _.flip_front())

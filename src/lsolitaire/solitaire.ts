@@ -120,6 +120,7 @@ export class Stock {
     }
     undo_recycle(waste: Card[]) {
         this.hidden.add_cards(this.stock.remove_all())
+
         let hidden_to_waste = this.hidden.shift_cards(waste.length)
         this.waste.add_cards(hidden_to_waste)
     }
@@ -335,6 +336,11 @@ export class Solitaire {
         readonly tableus: Tableu[],
         readonly foundations: Foundation[],
         readonly stock: Stock) {}
+
+    apply(cmd: IMove) {
+        cmd.apply(this)
+        this.moves.push(cmd)
+    }
 
     undo() {
         let move = this.moves.pop()
