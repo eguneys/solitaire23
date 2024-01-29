@@ -805,6 +805,16 @@ export class Tableu extends Play {
     return i
   }
 
+  find_click_begin(e: Vec2) {
+    this.hover_end()
+    let i = this.fronts.cards.findLastIndex(c => c.ghit_area?.contains_point(e))
+    if (i !== -1) {
+      let l = this.fronts.cards.length
+      return l - i
+    }
+    return undefined
+  }
+
   find_drag_begin(e: Vec2): [Card[], number] | undefined {
     this.hover_end()
     let i = this.fronts.cards.findLastIndex(c => c.ghit_area?.contains_point(e))

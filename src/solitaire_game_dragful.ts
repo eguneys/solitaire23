@@ -166,6 +166,8 @@ class SolitaireCards extends Play {
   drag_stack?: DragStack
   drag_source?: DragSource
 
+  click_source?: ClickSource
+
   _init() {
 
     this.cards = this.make(Cards)
@@ -202,11 +204,106 @@ class SolitaireCards extends Play {
       on_click(e, r) {
         e = e.mul(Game.v_screen)
 
+
         if (self.stock.find_stock_hit(e)) {
           self.data.on_cmd(new HitStock())
+          return true
+        }
+
+        let click_stock = self.stock.find_click_begin(e)
+
+        if (click_stock) {
+          self._release_cancel_highlight()
+          self.stock.waste.top_card.set_highlight(true)
+          self.click_source = 'waste'
+          return true
+        }
+
+        for (let i = 0; i < self.tableus.length; i++) {
+          let tableu = self.tableus[i]
+          let click_tableu = tableu.find_click_begin(e)
+
+          if (click_tableu !== undefined) {
+            if (!self.click_source) {
+              self._release_cancel_highlight()
+              self.tableus[i].fronts.set_highlight(click_tableu, true)
+              self.click_source = { tableu: i, i: click_tableu }
+              return true
+            } else if (self.click_source === 'waste') {
+              self.data.on_cmd(new WasteToTableu(i))
+              return true
+            } else {
+              let { tableu, i: _i } = self.click_source
+
+              if (tableu === i) {
+
+                /*
+                if (click_tableu === 1) {
+                  self._release_cancel_highlight()
+                  let hint_data = TableuToFoundation.auto_can(back, { tableu })
+                  if (hint_data) {
+                    self.trigger_auto = -1
+                    let [from, to, i] = hint_data
+                    self.data.on_cmd(new TableuToFoundation(from, to, i)
+                  }
+
+                  return true
+                }
+                */
+
+
+                self._release_cancel_highlight()
+                self.tableus[i].fronts.set_highlight(click_tableu, true)
+                self.click_source = { tableu: i, i: click_tableu }
+                return true
+              }
+
+              self.data.on_cmd(new TableuToTableu(tableu, i, _i))
+              return true
+            }
+          }
         }
 
 
+        for (let i = 0; i < self.tableus.length; i++) {
+          let tableu = self.tableus[i]
+
+          if (tableu.ghit_area!.contains_point(e)) {
+
+            if (!self.click_source) {
+              self._release_cancel_highlight()
+              return true
+            } else if (self.click_source === 'waste') {
+              self.data.on_cmd(new WasteToTableu(i))
+              return true
+            } else {
+              let { tableu, i: _i } = self.click_source
+              self.data.on_cmd(new TableuToTableu(tableu, i, _i))
+              return true
+            }
+            return true
+          }
+        }
+
+        for (let i = 0; i < self.foundations.length; i++) {
+          let foundation = self.foundations[i]
+
+          if (foundation.ghit_area!.contains_point(e)) {
+            if (self.click_source === 'waste') {
+              self.data.on_cmd(new WasteToFoundation(i))
+              return true
+            } else if (self.click_source) {
+              let { tableu, i: _i } = self.click_source
+
+              if (_i === 1) {
+                self.data.on_cmd(new TableuToFoundation(tableu, i, 1))
+                return true
+              }
+            }
+          }
+        }
+     
+        self._release_cancel_highlight()
         return false
       },
       on_hover(e) {
@@ -311,6 +408,7 @@ class SolitaireCards extends Play {
         let e = d.e.mul(Game.v_screen)
         if (d.m && !d0?.m) {
 
+          self._release_cancel_highlight()
           let drag_stock = self.stock.find_drag_begin(e)
 
           if (drag_stock) {
@@ -422,6 +520,21 @@ class SolitaireCards extends Play {
     })
   }
 
+  _release_cancel_highlight() {
+    if (!this.click_source) {
+      return
+    } else if (this.click_source === 'waste') {
+      this.stock.waste.top_card.set_highlight(false)
+      this.click_source = undefined
+    } else {
+      let { tableu, i } = this.click_source
+      this.tableus[tableu].fronts.set_highlight(i, false)
+      this.click_source = undefined
+    }
+  }
+
+
+
   _refresh_recycle() {
     if (!back.can_hit_stock()) {
       this.recycle_view.visible = true
@@ -492,12 +605,9 @@ class SolitaireCards extends Play {
 
 
       if (!this.drag_stack) {
-        /*
         this._release_cancel_highlight()
         let cards = this.stock.remove_waste(1)
         this.tableus[to].add_fronts(cards)
-        this.stock.bind_new_front()
-        */
       } else {
         let cards = this.drag_stack.lerp_release()
         this.tableus[to].add_fronts(cards)
@@ -507,11 +617,9 @@ class SolitaireCards extends Play {
       let { to } = cmd
 
       if (!this.drag_stack) {
-        /*
         this._release_cancel_highlight()
         let cards = this.stock.remove_waste(1)
         this.foundations[to].add_cards(cards)
-        */
       } else {
   
         let cards = this.drag_stack!.lerp_release()
@@ -525,13 +633,9 @@ class SolitaireCards extends Play {
       let { from, to } = cmd
 
       if (!this.drag_stack) {
-
-        /*
         this._release_cancel_highlight()
-
         let cards = this.tableus[from].remove_fronts(1)
         this.foundations[to].add_cards(cards)
-        */
       } else {
         let cards = this.drag_stack!.lerp_release()
         this.foundations[to].add_cards(cards)
@@ -555,7 +659,6 @@ class SolitaireCards extends Play {
 
       let bring_to_front_cards: Card[] = []
       if (!this.drag_stack) {
-        /*
         if (this.click_source && isTableuClickSource(this.click_source)) {
           let { tableu, i } = this.click_source
 
@@ -566,7 +669,6 @@ class SolitaireCards extends Play {
 
           bring_to_front_cards = cards
         }
-        */
       } else {
         let cards = this.drag_stack!.lerp_release()
         this.tableus[to].add_fronts(cards)
@@ -664,6 +766,15 @@ class Foundation extends Play {
     this.stack = this.make(Stack, Vec2.zero, { h: 0 })
   }
 
+  find_click_begin(e: Vec2) {
+    let c0 = this.stack.top_card
+
+    if (c0 && c0.ghit_area?.contains_point(e)) {
+      return c0
+    }
+    return undefined
+  }
+
   find_drag_begin(e: Vec2) {
     let c0 = this.stack.top_card
 
@@ -697,6 +808,14 @@ class Stock extends Play {
       ...this.waste.remove_cards(this.waste.length),
       ...this.waste_hidden.remove_cards(this.waste_hidden.length)
     ]
+  }
+
+  find_click_begin(e: Vec2) {
+    let c = this.waste.top_card
+    if (c && !c.easing && c.ghit_area?.contains_point(e)) {
+      return c
+    }
+    return undefined
   }
 
   find_drag_begin(e: Vec2) {
