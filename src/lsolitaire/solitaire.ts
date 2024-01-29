@@ -84,6 +84,15 @@ export class Foundation {
 }
 
 export class Stock {
+
+    can_recycle() {
+        return this.stock.length === 0 && (this.waste.length + this.hidden.length) > 0
+    }
+
+    can_hit_stock() {
+        return this.stock.length > 0
+    }
+
     hit(n: number): [Card[], Card[]] {
         let cards = this.stock.remove_cards(n)
         let waste = this.waste.remove_all()
@@ -445,10 +454,18 @@ export class Solitaire {
     }
 
     can_hit_stock() {
-        return true
+        return this.stock.can_hit_stock()
     }
 
     can_hit_recycle() {
-        return true
+        return this.has_recycle_limit && this.stock.can_recycle()
+    }
+
+    get recycle_n() {
+        return this.settings.limit === 'nolimit' ? 999 : this.settings.limit === 'threepass' ? 3 : 1
+    }
+
+    get has_recycle_limit() {
+        return this.recycle_n - this.nb_recycles > 0
     }
 }

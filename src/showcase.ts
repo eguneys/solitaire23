@@ -794,7 +794,8 @@ export class Tableu extends Play {
     this.hover_end()
     let i = this.fronts.cards.findLastIndex(c => c.ghit_area?.contains_point(e))
     if (i !== -1) {
-      return [this.fronts.cards.splice(i), i]
+      let l = this.fronts.cards.length
+      return [this.fronts.cards.splice(i), l - i]
     }
     return undefined
   }

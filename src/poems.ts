@@ -3,11 +3,7 @@ import { arr_random } from './util'
 
 class Poems {
     static load = () => {
-
-
         let verses = en.split(/\r?\n\r?\n/)
-        console.log(en, verses)
-
         return new Poems(verses)
 
     }
