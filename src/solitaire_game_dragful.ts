@@ -216,6 +216,7 @@ class SolitaireCards extends Play {
 
 
         if (self.stock.find_stock_hit(e)) {
+          self._release_cancel_highlight()
           self.data.on_cmd(new HitStock())
           return true
         }
