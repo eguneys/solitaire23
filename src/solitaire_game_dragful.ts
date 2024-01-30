@@ -4,12 +4,13 @@ import { Settings, Solitaire, IMove, TableuToTableu, HitStock, HitRecycle, Waste
 import { Card as OCard, Cards as DeckCards, n_seven, n_four } from "./lsolitaire/types";
 import { Play } from "./play";
 import { Stack, Cards, Card, Tableu, DragStack } from "./showcase";
-import { SolitaireStore } from "./store";
+import { SolitaireResultsStore, SolitaireStore } from "./store";
 import { shuffleArray } from "./util";
 import Game, { Clickable } from "./game";
 import { ticks } from "./shared";
 import { Anim } from './anim';
 import { appr } from './lerp';
+import { SolitaireGameResult } from './statistics';
 
 let back: Solitaire
 
@@ -90,10 +91,18 @@ export class SolitaireGameDragful extends Play {
   }
 
   request_new_game() {
+    let score = back.stats.score
+    if (score > 0) {
+      if (!back.is_finished) {
+        SolitaireResultsStore.add_result(SolitaireGameResult.from_loss(back.settings, score))
+      }
+    }
+
     reset_back()
     this._on_score(back.score)
     this._on_new_game(back.settings)
 
+    
     this.collect_cards()
 
   }
@@ -107,11 +116,10 @@ export class SolitaireGameDragful extends Play {
     let self = this
     this.cards = this.make(SolitaireCards, Vec2.zero, {
       on_cmd(cmd: IMove) {
-        self.cmd(cmd)
+        setTimeout(() => self.cmd(cmd))
       }
     })
   }
-
 }
 
 export type TableuDrag = {

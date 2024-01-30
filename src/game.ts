@@ -2751,7 +2751,7 @@ export default class Game extends Play {
     this.objects = []
 
     Sound.load().then(() => {
-      console.log(Sound)
+      //console.log(Sound)
     })
 
     Content.load().then(() => {

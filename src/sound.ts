@@ -36,7 +36,6 @@ class Sound {
   }
 
   play(name: string) {
-
     if (!GeneralStore.sound) {
       return;
     }

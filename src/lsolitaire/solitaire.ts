@@ -1,6 +1,20 @@
 import { is_king, is_descending, is_red_black, is_ace, ranks_ace_through_king } from './types'
 import { n_seven, Card,  Stack, suits, Cards } from './types'
 
+export const Scores = {
+  Recycle: -10,
+  HitStock: 0,
+  WasteToTableu: 10,
+  WasteToFoundation: 30,
+  FoundationToTableu: -5,
+  Undo: -20,
+  TableuToFoundationFlip: 35,
+  TableuToFoundationNoFlip: 20,
+  TableuToTableuFlip: 10,
+  TableuToTableuNoFlip: 0,
+}
+
+
 export type TurningCards = 'threecards' | 'onecard'
 export type TurningLimit = 'nolimit' | 'onepass' | 'threepass'
 
@@ -427,6 +441,7 @@ export class Solitaire {
     undo() {
         let move = this.moves.pop()
         if (move) {
+            this.stats.score += Scores.Undo
             move.undo(this)
             return move
         }
@@ -438,6 +453,11 @@ export class Solitaire {
         let [cards, flip] = this.tableus[from].from_tableu(i)
         this.tableus[to].to_tableu(cards)
 
+        if (flip !== undefined) {
+            this.stats.score += Scores.TableuToTableuFlip
+        } else {
+            this.stats.score += Scores.TableuToTableuNoFlip
+        }
         return [cards, flip]
     }
 
@@ -446,6 +466,11 @@ export class Solitaire {
         let [cards, flip] = this.tableus[from].from_tableu(i)
         this.foundations[to].to_foundation(cards)
 
+        if (flip !== undefined) {
+            this.stats.score += Scores.TableuToFoundationFlip
+        } else {
+            this.stats.score += Scores.TableuToFoundationNoFlip
+        }
         return [cards, flip]
     }
 
@@ -453,6 +478,7 @@ export class Solitaire {
         let cards = this.stock.from_waste()
         this.tableus[to].to_tableu(cards)
 
+        this.stats.score += Scores.WasteToTableu
         return cards
     }
 
@@ -461,12 +487,17 @@ export class Solitaire {
         let cards = this.stock.from_waste()
         this.foundations[to].to_foundation(cards)
 
+        this.stats.score += Scores.WasteToFoundation
+
         return cards
     }
 
     foundation_to_tableu(from: number, to: number) {
         let cards = this.foundations[from].from_foundation()
         this.tableus[to].to_tableu(cards)
+
+        this.stats.score += Scores.FoundationToTableu
+
         return cards
     }
 
@@ -502,11 +533,14 @@ export class Solitaire {
     hit_stock() {
         let cards = this.stock.hit(this.hit_n)
 
+        this.stats.score += Scores.HitStock
         return cards
     }
 
     hit_recycle() {
         this.nb_recycles+= 1
+
+        this.stats.score += Scores.Recycle
 
         return this.stock.recycle()
     }
