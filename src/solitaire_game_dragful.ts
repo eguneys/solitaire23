@@ -1,5 +1,5 @@
 import Sound from './sound'
-import { Rect, Vec2 } from "blah";
+import { Rect, Time, Vec2 } from "blah";
 import { Settings, Solitaire, IMove, TableuToTableu, HitStock, HitRecycle, WasteToTableu, WasteToFoundation, TableuToFoundation, FoundationToTableu } from "./lsolitaire/solitaire";
 import { Card as OCard, Cards as DeckCards, n_seven, n_four } from "./lsolitaire/types";
 import { Play } from "./play";
@@ -9,6 +9,7 @@ import { shuffleArray } from "./util";
 import Game, { Clickable } from "./game";
 import { ticks } from "./shared";
 import { Anim } from './anim';
+import { appr } from './lerp';
 
 let back: Solitaire
 
@@ -28,7 +29,7 @@ export class SolitaireGameDragful extends Play {
         this._on_game_over = on_game_over
         this._on_init = on_init
 
-        this.collect_pov()
+        this.collect_cards()
         this._on_init(this.settings)
 
   }
@@ -72,7 +73,7 @@ export class SolitaireGameDragful extends Play {
     this.cards.apply(cmd)
   }
   cant(cmd: IMove) {
-    throw new Error("Method not implemented.");
+    this.cards.cant(cmd)
   }
 
   get settings() {
@@ -84,14 +85,17 @@ export class SolitaireGameDragful extends Play {
   _on_game_over!: (_: Settings, score: number) => void
   _on_init!: (_: Settings) => void
 
-  collect_pov() {
-
-
-
-
+  collect_cards() {
+    this.cards._collect_cards()
   }
+
   request_new_game() {
-    throw new Error('Method not implemented.');
+    reset_back()
+    this._on_score(back.score)
+    this._on_new_game(back.settings)
+
+    this.collect_cards()
+
   }
   request_undo() {
     this.cmd_undo()
@@ -196,8 +200,6 @@ class SolitaireCards extends Play {
 
     this.foundations = n_four.map(i => this.make(Foundation, Vec2.make(foundation_x, foundation_y + foundation_h * (i - 1))))
 
-    this._collect_cards()
-
     let hovering_tableu: Tableu | undefined = undefined
     let self = this
     this.unbindable_input({
@@ -213,7 +215,20 @@ class SolitaireCards extends Play {
         let click_stock = self.stock.find_click_begin(e)
 
         if (click_stock) {
-          self._release_cancel_highlight()
+
+          if (self.click_source === 'waste') {
+            self._release_cancel_highlight()
+
+            let hint_data = WasteToFoundation.auto_can(back)
+            if (hint_data !== undefined) {
+              let to = hint_data
+              self.trigger_auto = -1
+              self.data.on_cmd(new WasteToFoundation(to))
+            }
+
+            return true
+          }
+
           self.stock.waste.top_card.set_highlight(true)
           self.click_source = 'waste'
           return true
@@ -237,19 +252,17 @@ class SolitaireCards extends Play {
 
               if (tableu === i) {
 
-                /*
                 if (click_tableu === 1) {
                   self._release_cancel_highlight()
-                  let hint_data = TableuToFoundation.auto_can(back, { tableu })
-                  if (hint_data) {
+                  let hint_data = TableuToFoundation.auto_can(back, tableu)
+                  if (hint_data !== undefined) {
                     self.trigger_auto = -1
-                    let [from, to, i] = hint_data
-                    self.data.on_cmd(new TableuToFoundation(from, to, i)
+                    let [from, to] = hint_data
+                    self.data.on_cmd(new TableuToFoundation(from, to, 1))
                   }
 
                   return true
                 }
-                */
 
 
                 self._release_cancel_highlight()
@@ -381,25 +394,8 @@ class SolitaireCards extends Play {
             }
           }
 
-          let cards = self.drag_stack.lerp_release()
-          if (self.drag_source! === 'waste') {
-            self.stock.add_waste(cards)
-          } else if (isFoundationDragSource(self.drag_source!)) {
-
-            let { foundation } = self.drag_source!
-            self.foundations[foundation].add_cards(cards)
-          } else {
-            let { tableu, i } = self.drag_source!
-            self.tableus[tableu].add_fronts(cards)
-          }
-
-          Sound.play('cancel')
-          self.drag_stack.dispose()
-          self.drag_stack = undefined
-          self.drag_source = undefined
-          cards[0].after_ease(() => {
-            self.cards.shadow_group = undefined
-          })
+          self._release_cancel_drag()
+          self._release_cancel_highlight()
         }
 
         return true
@@ -489,6 +485,21 @@ class SolitaireCards extends Play {
 
   _collect_cards() {
 
+    n_seven.map(i => {
+      let tableu = this.tableus[i - 1]
+      tableu.release_all().forEach(_ => this.cards.release(_))
+    })
+    this.stock.release_all().forEach(_ => this.cards.release(_))
+    n_four.map(i => {
+      let foundation = this.foundations[i - 1]
+      foundation.release_all().forEach(_ => this.cards.release(_))
+    })
+
+    this._release_cancel_drag()
+    this._release_cancel_highlight()
+    this._refresh_recycle()
+
+
     this.stock.add_waste_hidden(back.stock.hidden.cards.map(card => this.cards.borrow()))
     this.stock.add_stocks(back.stock.stock.cards.map(card => this.cards.borrow()))
     this.stock.add_waste(back.stock.waste.cards.map(card => {
@@ -518,6 +529,30 @@ class SolitaireCards extends Play {
       this.tableus[i].add_fronts(fronts)
 
     })
+  }
+
+  _release_cancel_drag() {
+    if (this.drag_stack) {
+      let cards = this.drag_stack.lerp_release()
+      if (this.drag_source! === 'waste') {
+        this.stock.add_waste(cards)
+      } else if (isFoundationDragSource(this.drag_source!)) {
+
+        let { foundation } = this.drag_source!
+        this.foundations[foundation].add_cards(cards)
+      } else {
+        let { tableu, i } = this.drag_source!
+        this.tableus[tableu].add_fronts(cards)
+      }
+
+      Sound.play('cancel')
+      this.drag_stack.dispose()
+      this.drag_stack = undefined
+      this.drag_source = undefined
+      cards[0].after_ease(() => {
+        this.cards.shadow_group = undefined
+      })
+    }
   }
 
   _release_cancel_highlight() {
@@ -589,6 +624,11 @@ class SolitaireCards extends Play {
       let cards = this.tableus[to].remove_fronts(1)
       this.foundations[from].add_cards(cards)
     }
+  }
+
+  cant(cmd: IMove) {
+    this._release_cancel_drag()
+    this._release_cancel_highlight()
   }
 
   apply(cmd: IMove) {
@@ -693,6 +733,44 @@ class SolitaireCards extends Play {
         this.cards.shadow_group = undefined
       })
     }
+
+    if (cmd instanceof TableuToFoundation || cmd instanceof WasteToFoundation) {
+      if (this.trigger_auto === -1) {
+        Sound.play('auto_flip')
+      }
+      if (this.trigger_auto === -3) {
+        Sound.play('auto_flip')
+        this.trigger_auto = -1
+      }
+    }
+  }
+
+  trigger_auto: number = -2
+
+  _update() {
+    if (this.trigger_auto === -1) {
+      this.trigger_auto = ticks.thirds
+    } else if (this.trigger_auto > 0) {
+      this.trigger_auto = appr(this.trigger_auto, 0, Time.delta)
+    } else if (this.trigger_auto === 0) {
+      this.trigger_auto = -2
+      let hint_data = WasteToFoundation.auto_can(back)
+      if (hint_data !== undefined) {
+        let to = hint_data
+        this.data.on_cmd(new WasteToFoundation(to))
+        this.trigger_auto = -3
+      } else {
+        for (let i = 0; i < 7; i++) {
+          let hint_data = TableuToFoundation.auto_can(back, i)
+          if (hint_data !== undefined) {
+            let [from, to] = hint_data
+            this.data.on_cmd(new TableuToFoundation(from, to, 1))
+            this.trigger_auto = -3
+            break
+          }
+        }
+      }
+    }
   }
 
   foundation_find_max_overlap(c0: Card) {
@@ -761,6 +839,15 @@ class Foundation extends Play {
   hit_area = Rect.make(-70, -70, 170, 210)
 
   stack!: Stack
+
+
+  release_all() {
+    return this.free()
+  }
+
+  free() {
+    return this.remove_cards(this.stack.length)
+  }
 
   _init() {
     this.stack = this.make(Stack, Vec2.zero, { h: 0 })

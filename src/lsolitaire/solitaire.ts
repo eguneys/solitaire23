@@ -1,3 +1,4 @@
+import { is_king, is_descending, is_red_black, is_ace, ranks_ace_through_king } from './types'
 import { n_seven, Card,  Stack, suits, Cards } from './types'
 
 export type TurningCards = 'threecards' | 'onecard'
@@ -21,6 +22,30 @@ export class Stats {
 }
 
 export class Tableu {
+
+    can_drag(i: number) {
+        let front = this.front.clone
+
+        let cards = front.remove_cards(i)
+        if (cards.length === i) {
+            return cards
+        }
+        return undefined
+    }
+
+    can_drop(cards: Card[]) {
+        let top = cards[0]
+
+        if (!top) {
+            return false
+        }
+
+        if (this.front.length > 0) {
+            return is_red_black(top, this.front.top_card) && is_descending(top, this.front.top_card)
+        } else {
+            return is_king(top)
+        }
+    }
 
     constructor(readonly back: Stack, readonly front: Stack) {}
 
@@ -58,6 +83,30 @@ export class Tableu {
 
 export class Foundation {
 
+    get suit() {
+        return this.foundation.top_card?.[0]
+    }
+
+    get next_top() {
+        if (!this.suit) {
+            return undefined
+        }
+        let suit = this.suit
+        let rank = ranks_ace_through_king[this.foundation.length]
+        return `${suit}${rank}`
+    }
+
+
+    can_drop(cards: Card[]) {
+        let [top] = cards
+        return cards.length === 1 &&
+            (this.next_top ? top === this.next_top : is_ace(top))
+    }
+
+    can_drag() {
+        return this.foundation.top_card
+    }
+
     get is_finished() {
         return this.foundation.length === 13
     }
@@ -84,6 +133,10 @@ export class Foundation {
 }
 
 export class Stock {
+
+    can_drag() {
+        return this.waste.top_card
+    }
 
     can_recycle() {
         return this.stock.length === 0 && (this.waste.length + this.hidden.length) > 0
@@ -169,6 +222,22 @@ export class TableuToTableu implements IMove {
 
 export class TableuToFoundation implements IMove {
 
+    static auto_can(back: Solitaire, tableu: number) {
+
+        for (let to = 0; to < 4; to++) {
+            if (TableuToFoundation.can(back, tableu, to)) {
+                return [tableu, to]
+            }
+        }
+        return undefined
+    }
+
+    static can(back: Solitaire, from: number, to: number) {
+        return back.can_tableu_to_foundation(from, to, 1)
+    }
+
+
+
     can(solitaire: Solitaire): boolean {
         return solitaire.can_tableu_to_foundation(this.from, this.to, this.i)
     }
@@ -213,6 +282,19 @@ export class WasteToTableu implements IMove {
 
 
 export class WasteToFoundation implements IMove {
+
+    static auto_can(back: Solitaire) {
+        for (let to = 0; to < 4; to++) {
+            if (WasteToFoundation.can(back, to)) {
+                return to
+            }
+        }
+        return undefined
+    }
+
+    static can(back: Solitaire, to: number) {
+        return back.can_waste_to_foundation(to)
+    }
 
     can(solitaire: Solitaire): boolean {
         return solitaire.can_waste_to_foundation(this.to)
@@ -440,23 +522,28 @@ export class Solitaire {
     }
 
     can_tableu_to_tableu(from: number, to: number, i: number) {
-        return true
+        let c = this.tableus[from].can_drag(i)
+        return c !== undefined && this.tableus[to].can_drop(c)
     }
 
     can_tableu_to_foundation(from: number, to: number, i: number) {
-        return true
+        let cs = this.tableus[from].can_drag(i)
+        return cs !== undefined && cs.length === 1 && this.foundations[to].can_drop(cs)
     }
 
     can_waste_to_tableu(to: number) {
-        return true
+        let c = this.stock.can_drag()
+        return c !== undefined && this.tableus[to].can_drop([c])
     }
 
     can_waste_to_foundation(to: number) {
-        return true
+        let c = this.stock.can_drag()
+        return c !== undefined && this.foundations[to].can_drop([c])
     }
 
     can_foundation_to_tableu(from: number, to: number) {
-        return true
+        let c = this.foundations[from].can_drag()
+        return c !== undefined && this.tableus[to].can_drop([c])
     }
 
     can_hit_stock() {
