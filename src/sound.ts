@@ -44,6 +44,8 @@ class Sound {
 
     let audio = audios.pop()!
     audios.unshift(audio)
+    
+    audio.volume = 0.6
 
     audio.play()
   }

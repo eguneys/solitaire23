@@ -410,6 +410,11 @@ class SolitaireCards extends Play {
         return true
       },
       on_drag(d, d0) {
+
+        if (self.trigger_auto !== -2) {
+          return  false
+        }
+
         let e = d.e.mul(Game.v_screen)
         if (d.m && !d0?.m) {
 
