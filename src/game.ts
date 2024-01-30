@@ -30,6 +30,7 @@ import { limit_settings, cards_settings, SolitaireStore, GeneralStore } from './
 import { SolitaireResultsStore } from './store'
 import { GameResults, OverallResults } from './statistics'
 import { Poems } from './poems'
+import { Button } from './ui'
 
 
 type RectData = {
@@ -2134,22 +2135,70 @@ class OverallStatistics extends Play {
       center: true
     })
 
+    let self = this
+    this.make(Button, Vec2.make(700, 1600), {
+      text: 'clear_statistics',
+      on_click() {
+        SolitaireResultsStore.clear_results()
+        self._load_results()
+      }
+    })
+
+    this.height = 2000
+
+    this._load_results()
+  }
+
+  table_view?: ResultsTableView
+
+  _load_results() {
+
+    this.table_view?.dispose()
+
     let overall_results = new OverallResults(
       SolitaireResultsStore.results, 
       new GameResults([]), 
       new GameResults([]))
 
+
+    this.table_view = this.make(ResultsTableView, Vec2.make(0, 0), {
+      total_played: overall_results.total_played,
+      total_wins: overall_results.total_wins,
+      top_5_highscores: overall_results.top_5_highscores.map(_ => _.multiplied_score)
+    })
+
+
+  }
+
+}
+
+type ResultsTableViewData  = {
+  total_played: number,
+  total_wins: number,
+  top_5_highscores: number[]
+}
+
+class ResultsTableView extends Play {
+
+  get data() {
+    return this._data as ResultsTableViewData
+  }
+
+  _init() {
+
+    let { total_played, total_wins, top_5_highscores } = this.data
+
     let h = 100
 
     this.make(TransText, Vec2.make(700, 200), {
-      key: `total_games_played%${overall_results.total_played}%`,
+      key: `total_games_played%${total_played}%`,
       width: 820,
       height: 200,
       center: true
     })
 
     this.make(TransText, Vec2.make(700, 200 + h * 1.2), {
-      key: `games_won%${overall_results.total_wins}%`,
+      key: `games_won%${total_wins}%`,
       width: 820,
       height: 200,
       center: true
@@ -2162,7 +2211,7 @@ class OverallStatistics extends Play {
       center: true
     })
 
-    let top_highscores = overall_results.top_5_highscores
+    let top_highscores = top_5_highscores
 
     top_highscores.forEach((top, i) => {
       this.make(TransText, Vec2.make(200, 200 + h * 4 + h * i * 1.5 + 80), {
@@ -2172,7 +2221,7 @@ class OverallStatistics extends Play {
         no_trans: true
       })
       this.make(TransText, Vec2.make(700, 200 + h * 4 + h * i * 1.5 + 80), {
-        key: `${top.multiplied_score}`,
+        key: `${top}`,
         width: 80,
         height: 100,
         no_trans: true,
@@ -2187,8 +2236,6 @@ class OverallStatistics extends Play {
     
     })
 
-
-    this.height = 2000
   }
 }
 
@@ -2206,58 +2253,38 @@ class SolitaireStatistics extends Play {
       center: true
     })
 
-    let results = SolitaireResultsStore.results
 
-    let h = 100
-
-    this.make(TransText, Vec2.make(700, 200), {
-      key: `total_games_played%${results.total_played}%`,
-      width: 820,
-      height: 200,
-      center: true
+    let self = this
+    this.make(Button, Vec2.make(700, 1600), {
+      text: 'clear_statistics',
+      on_click() {
+        SolitaireResultsStore.clear_results()
+        self._load_results()
+      }
     })
 
-    this.make(TransText, Vec2.make(700, 200 + h * 1.2), {
-      key: `games_won%${results.total_wins}%`,
-      width: 820,
-      height: 200,
-      center: true
-    })
-
-    this.make(TransText, Vec2.make(700, 200 + h * 3), {
-      key: 'top5_highscores',
-      width: 820,
-      height: 200,
-      center: true
-    })
-
-    let top_highscores = results.top_5_highscores
-
-    top_highscores.forEach((top, i) => {
-      this.make(TransText, Vec2.make(200, 200 + h * 4 + h * i * 1.5 + 80), {
-        key: `${i + 1}.`,
-        width: 80,
-        height: 100,
-        no_trans: true
-      })
-      this.make(TransText, Vec2.make(700, 200 + h * 4 + h * i * 1.5 + 80), {
-        key: `${top.multiplied_score}`,
-        width: 80,
-        height: 100,
-        no_trans: true,
-        center: true
-      })
-
-      this.make(RectView, Vec2.make(200, 100 + 200 + h * 4 + h * i * 1.5 + 80), {
-        w: 1000,
-        h: 20,
-        color: Color.white
-      })
-    
-    })
 
 
     this.height = 2000
+
+    this._load_results()
+  }
+
+  table_view?: ResultsTableView
+
+  _load_results() {
+
+    this.table_view?.dispose()
+
+    let results = SolitaireResultsStore.results
+
+    this.table_view = this.make(ResultsTableView, Vec2.make(0, 0), {
+      total_played: results.total_played,
+      total_wins: results.total_wins,
+      top_5_highscores: results.top_5_highscores.map(_ => _.multiplied_score)
+    })
+
+
   }
 }
 
@@ -2672,11 +2699,11 @@ class SceneTransition extends Play {
 
     //this.current = this._make(CardShowcase, Vec2.zero, {})
     // this.current = this._make(MainMenu, Vec2.zero, {})
-    //this.current = this._make(Statistics2, Vec2.zero, {})
+    this.current = this._make(Statistics2, Vec2.zero, {})
     //this.current = this._make(MainMenu2, Vec2.zero, {})
     //this.current = this._make(HowtoPlay2, Vec2.zero, {})
     //this.current = this._make(Settings2, Vec2.zero, {})
-    this.current = this._make(SolitairePlay, Vec2.zero, {})
+    //this.current = this._make(SolitairePlay, Vec2.zero, {})
     //this.current = this._make(About2, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))

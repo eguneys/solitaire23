@@ -374,7 +374,7 @@ class SolitaireCards extends Play {
 
           if (to_i !== -1 || to_i0 !== -1) {
 
-            if (to_i === -1 && to_i0 !== -1) {
+            if (to_i0 !== -1) {
               to_i = to_i0
             }
 
