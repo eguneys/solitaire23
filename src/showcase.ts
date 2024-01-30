@@ -847,6 +847,7 @@ export class Tableu extends Play {
   }
 
   remove_fronts(i: number) {
+    this.hover_end()
     let cards = this.fronts.remove_cards(i)
     return cards
   }

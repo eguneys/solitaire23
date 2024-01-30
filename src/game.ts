@@ -2699,8 +2699,8 @@ class SceneTransition extends Play {
 
     //this.current = this._make(CardShowcase, Vec2.zero, {})
     // this.current = this._make(MainMenu, Vec2.zero, {})
-    this.current = this._make(Statistics2, Vec2.zero, {})
-    //this.current = this._make(MainMenu2, Vec2.zero, {})
+    //this.current = this._make(Statistics2, Vec2.zero, {})
+    this.current = this._make(MainMenu2, Vec2.zero, {})
     //this.current = this._make(HowtoPlay2, Vec2.zero, {})
     //this.current = this._make(Settings2, Vec2.zero, {})
     //this.current = this._make(SolitairePlay, Vec2.zero, {})

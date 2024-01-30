@@ -65,7 +65,7 @@ export class SolitaireGameDragful extends Play {
   }
 
   cant_undo() {
-    throw new Error("Method not implemented.");
+    //throw new Error("Method not implemented.");
   }
   undo(cmd: IMove) {
     this.cards.undo(cmd)
@@ -536,6 +536,18 @@ class SolitaireCards extends Play {
       this.tableus[i].add_backs(backs)
       this.tableus[i].add_fronts(fronts)
 
+    })
+
+
+    back.foundations.forEach((foundation, i) => {
+      let fs = foundation.foundation.cards.map(card => {
+        let c = this.cards.borrow()
+        c.card = card
+        c.flip_front()
+        return c
+      })
+
+      this.foundations[i].add_cards(fs)
     })
   }
 
