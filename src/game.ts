@@ -109,6 +109,9 @@ export class Background extends Play {
       color: Color.hex(0x222222)
     })
 
+    this.make(Anim, Vec2.make(0, 0), {
+      name: 'soli_bg'
+    })
 
 
     let poem = Poems.one()
@@ -2700,10 +2703,10 @@ class SceneTransition extends Play {
     //this.current = this._make(CardShowcase, Vec2.zero, {})
     // this.current = this._make(MainMenu, Vec2.zero, {})
     //this.current = this._make(Statistics2, Vec2.zero, {})
-    this.current = this._make(MainMenu2, Vec2.zero, {})
+    //this.current = this._make(MainMenu2, Vec2.zero, {})
     //this.current = this._make(HowtoPlay2, Vec2.zero, {})
     //this.current = this._make(Settings2, Vec2.zero, {})
-    //this.current = this._make(SolitairePlay, Vec2.zero, {})
+    this.current = this._make(SolitairePlay, Vec2.zero, {})
     //this.current = this._make(About2, Vec2.zero, {})
 
     transition.set_matrix(Mat3x2.create_scale_v(Game.v_screen))
