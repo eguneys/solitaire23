@@ -10,8 +10,9 @@ export default defineConfig({
     manifest: { 
 name: 'Sofo Solitaire',
 short_name: "Sofo",
-start_url: ".",
-display: "standalone",
+start_url: ".?fullscreen=true",
+display: "fullscreen",
+orientation: "landscape",
 background_color: "#315594",
 description: "Solitaire 3 Card Games",
 icons: [{
